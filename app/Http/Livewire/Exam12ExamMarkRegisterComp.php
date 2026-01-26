@@ -1,0 +1,317 @@
+<?php
+
+namespace App\Http\Livewire;
+
+use Livewire\Component;
+use App\Models\Exam10MarksEntry;
+use App\Models\Myclass;
+use App\Models\MyclassSection;
+use App\Models\Studentcr;
+use App\Models\Exam06ClassSubject;
+use App\Models\Exam05Detail;
+use App\Models\Subject;
+use App\Models\SubjectType;
+use App\Models\Exam01Name;
+use App\Models\Exam02Type;
+use App\Models\Exam03Part;
+use App\Models\Exam08Grade;
+use App\Models\Session;
+use App\Models\School;
+use App\Models\User;
+
+class Exam12ExamMarkRegisterComp extends Component
+{
+    public $activeTab = 0;
+    public $classes;
+    public $sections;
+    public $students;
+    public $examClassSubjects;
+    public $examDetails;
+    public $subjects;
+    public $subjectTypes;
+    public $examNames;
+    public $examTypes;
+    public $examParts;
+    public $grades;
+    public $sessions;
+    public $schools;
+    public $users;
+    public $existingMarksEntries;
+    
+    // Form data
+    public $formData = [];
+    public $editingId = null;
+    public $isEditingEnabled = false;
+    
+    protected $listeners = ['refreshComponent' => '$refresh'];
+    
+    public function mount()
+    {
+        $this->loadData();
+        $this->initializeFormData();
+    }
+    
+    public function loadData()
+    {
+        $this->classes = Myclass::orderBy('name')->get();
+        $this->sections = MyclassSection::with(['section', 'myclass'])->orderBy('myclass_id')->get();
+        $this->subjects = Subject::orderBy('name')->get();
+        $this->subjectTypes = SubjectType::orderBy('name')->get();
+        $this->examNames = Exam01Name::orderBy('name')->get();
+        $this->examTypes = Exam02Type::orderBy('name')->get();
+        $this->examParts = Exam03Part::orderBy('name')->get();
+        $this->grades = Exam08Grade::orderBy('name')->get();
+        $this->sessions = Session::orderBy('name')->get();
+        $this->schools = School::orderBy('name')->get();
+        $this->users = User::orderBy('name')->get();
+        
+        // Load existing exam class subjects
+        $this->examClassSubjects = Exam06ClassSubject::with([
+            'myclass', 
+            'subject', 
+            'examDetail'
+        ])->get();
+        
+        // Load existing marks entries
+        $this->existingMarksEntries = Exam10MarksEntry::with([
+            'examDetail.examName',
+            'examDetail.examType',
+            'examDetail.examPart',
+            'examClassSubject',
+            'myclassSection.section',
+            'studentcr',
+            'grade',
+            'session'
+        ])->get();
+    }
+    
+    public function initializeFormData()
+    {
+        // Initialize form data structure and load existing records
+        $existingRecords = Exam10MarksEntry::with([
+            'examDetail', 
+            'examClassSubject', 
+            'myclassSection',
+            'studentcr'
+        ])->get();
+        
+        foreach ($existingRecords as $record) {
+            $key = $record->myclass_section_id . '_' . $record->exam_detail_id . '_' . $record->studentcr_id;
+            $this->formData[$key] = [
+                'exam_marks' => $record->exam_marks,
+                'grade_id' => $record->grade_id,
+                'is_absent' => $record->is_absent,
+                'session_id' => $record->session_id,
+                'school_id' => $record->school_id,
+                'user_id' => $record->user_id,
+                'approved_by' => $record->approved_by,
+                'is_active' => $record->is_active,
+                'is_finalized' => $record->is_finalized,
+                'status' => $record->status,
+                'remarks' => $record->remarks
+            ];
+        }
+    }
+    
+    public function setActiveTab($index)
+    {
+        $this->activeTab = $index;
+    }
+    
+    public function getClassSections($classId)
+    {
+        return MyclassSection::where('myclass_id', $classId)
+            ->with(['section'])
+            ->orderBy('section_id')
+            ->get();
+    }
+    
+    public function getStudentsInSection($myclassSectionId)
+    {
+        // First get the MyclassSection record to get myclass_id and section_id
+        $myclassSection = MyclassSection::find($myclassSectionId);
+        
+        if (!$myclassSection) {
+            return collect();
+        }
+        
+        // Query students using the separate myclass_id and section_id columns
+        return Studentcr::where('myclass_id', $myclassSection->myclass_id)
+            ->where('section_id', $myclassSection->section_id)
+            ->with(['studentdb', 'myclass', 'section'])
+            ->orderBy('roll_no')
+            ->get();
+    }
+    
+    public function getClassSubjectsGroupedByType($classId)
+    {
+        $classSubjects = Exam06ClassSubject::whereHas('myclass', function($query) use ($classId) {
+            $query->where('id', $classId);
+        })
+        ->with(['subject.subjectType', 'myclass', 'examDetail'])
+        ->get();
+        
+        // Group by subject type
+        $grouped = $classSubjects->groupBy(function ($item) {
+            return $item->subject->subject_type_id;
+        });
+        
+        return $grouped;
+    }
+    
+    public function getExamDetailsForClass($classId)
+    {
+        return Exam05Detail::where('myclass_id', $classId)
+            ->with(['examName', 'examType', 'examPart', 'examMode'])
+            ->orderBy('exam_name_id')
+            ->orderBy('exam_type_id')
+            ->orderBy('exam_part_id')
+            ->get()
+            ->groupBy('exam_name_id');
+    }
+    
+    public function getExistingMarksEntry($myclassSectionId, $examDetailId, $studentcrId)
+    {
+        return Exam10MarksEntry::where('myclass_section_id', $myclassSectionId)
+            ->where('exam_detail_id', $examDetailId)
+            ->where('studentcr_id', $studentcrId)
+            ->first();
+    }
+    
+    public function getFormDataValue($myclassSectionId, $examDetailId, $studentcrId, $field)
+    {
+        $key = $myclassSectionId . '_' . $examDetailId . '_' . $studentcrId;
+        $record = $this->getExistingMarksEntry($myclassSectionId, $examDetailId, $studentcrId);
+        
+        if ($record && isset($this->formData[$key][$field])) {
+            return $this->formData[$key][$field];
+        } elseif ($record) {
+            return $record->$field;
+        } elseif (isset($this->formData[$key][$field])) {
+            return $this->formData[$key][$field];
+        }
+        
+        return '';
+    }
+    
+    public function saveMarksEntry($myclassSectionId, $examDetailId, $studentcrId)
+    {
+        $key = $myclassSectionId . '_' . $examDetailId . '_' . $studentcrId;
+        $data = $this->formData[$key] ?? [];
+        
+        // Validate required fields
+        if (!isset($data['exam_marks']) && empty($data['is_absent'])) {
+            session()->flash('error', 'Marks or absent status is required.');
+            return;
+        }
+        
+        $record = Exam10MarksEntry::updateOrCreate(
+            [
+                'myclass_section_id' => $myclassSectionId,
+                'exam_detail_id' => $examDetailId,
+                'studentcr_id' => $studentcrId
+            ],
+            [
+                'exam_marks' => $data['exam_marks'] ?? null,
+                'grade_id' => $data['grade_id'] ?? null,
+                'is_absent' => $data['is_absent'] ?? false,
+                'session_id' => $data['session_id'] ?? null,
+                'school_id' => $data['school_id'] ?? null,
+                'user_id' => $data['user_id'] ?? null,
+                'approved_by' => $data['approved_by'] ?? null,
+                'is_active' => $data['is_active'] ?? true,
+                'is_finalized' => $data['is_finalized'] ?? false,
+                'status' => $data['status'] ?? 'active',
+                'remarks' => $data['remarks'] ?? ''
+            ]
+        );
+        
+        session()->flash('message', 'Marks entry saved successfully.');
+        $this->emit('refreshComponent');
+    }
+    
+    public function editMarksEntry($id)
+    {
+        $record = Exam10MarksEntry::findOrFail($id);
+        $this->editingId = $id;
+        
+        $key = $record->myclass_section_id . '_' . $record->exam_detail_id . '_' . $record->studentcr_id;
+        $this->formData[$key] = [
+            'exam_marks' => $record->exam_marks,
+            'grade_id' => $record->grade_id,
+            'is_absent' => $record->is_absent,
+            'session_id' => $record->session_id,
+            'school_id' => $record->school_id,
+            'user_id' => $record->user_id,
+            'approved_by' => $record->approved_by,
+            'is_active' => $record->is_active,
+            'is_finalized' => $record->is_finalized,
+            'status' => $record->status,
+            'remarks' => $record->remarks
+        ];
+    }
+    
+    public function updateMarksEntry()
+    {
+        if (!$this->editingId) return;
+        
+        $record = Exam10MarksEntry::findOrFail($this->editingId);
+        $key = $record->myclass_section_id . '_' . $record->exam_detail_id . '_' . $record->studentcr_id;
+        $data = $this->formData[$key] ?? [];
+        
+        $record->update([
+            'exam_marks' => $data['exam_marks'] ?? null,
+            'grade_id' => $data['grade_id'] ?? null,
+            'is_absent' => $data['is_absent'] ?? false,
+            'session_id' => $data['session_id'] ?? null,
+            'school_id' => $data['school_id'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
+            'approved_by' => $data['approved_by'] ?? null,
+            'is_active' => $data['is_active'] ?? true,
+            'is_finalized' => $data['is_finalized'] ?? false,
+            'status' => $data['status'] ?? 'active',
+            'remarks' => $data['remarks'] ?? ''
+        ]);
+        
+        $this->editingId = null;
+        session()->flash('message', 'Marks entry updated successfully.');
+        $this->emit('refreshComponent');
+    }
+    
+    public function deleteMarksEntry($id)
+    {
+        Exam10MarksEntry::findOrFail($id)->delete();
+        session()->flash('message', 'Marks entry deleted successfully.');
+        $this->emit('refreshComponent');
+    }
+    
+    public function cancelEdit()
+    {
+        $this->editingId = null;
+    }
+    
+    public function toggleEditEnable()
+    {
+        $this->isEditingEnabled = !$this->isEditingEnabled;
+    }
+    
+    public function render()
+    {
+        return view('livewire.exam12-exam-mark-register-comp', [
+            'classes' => $this->classes,
+            'sections' => $this->sections,
+            'students' => $this->students,
+            'examClassSubjects' => $this->examClassSubjects,
+            'examDetails' => $this->examDetails,
+            'subjects' => $this->subjects,
+            'subjectTypes' => $this->subjectTypes,
+            'examNames' => $this->examNames,
+            'examTypes' => $this->examTypes,
+            'examParts' => $this->examParts,
+            'grades' => $this->grades,
+            'sessions' => $this->sessions,
+            'schools' => $this->schools,
+            'users' => $this->users
+        ]);
+    }
+}

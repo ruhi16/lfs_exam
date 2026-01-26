@@ -206,7 +206,21 @@
                 @elseif($currentComponent === 'exam.exam_mode')
                     @livewire('exam04-exam-mode-comp')
 
-                
+
+
+
+
+                @elseif($currentComponent === 'marks_entry.wall')
+                    @livewire('marks-entry-wall-comp')                
+
+
+                @elseif($currentComponent === 'marks_entry.anscr_distribution')
+                    @livewire('exam07-anscr-distribution-comp')
+
+                @elseif($currentComponent === 'marks_entry.mark_register')
+                    @livewire('exam12-exam-mark-register-comp')
+
+
 
 
                 @else
