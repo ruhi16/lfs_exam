@@ -170,6 +170,67 @@ class Exam12ExamMarkRegisterComp extends Component
             ->groupBy('exam_name_id');
     }
     
+    public function getExamDetailsGroupedByExamName($classId)
+    {
+        return Exam05Detail::where('myclass_id', $classId)
+            ->with(['examName', 'examType', 'examPart', 'examMode'])
+            ->orderBy('exam_name_id')
+            ->orderBy('exam_part_id')
+            ->get()
+            ->groupBy('exam_name_id');
+    }
+    
+    public function getExamDetailsGroupedByExamNameAndPart($classId)
+    {
+        $examDetails = Exam05Detail::where('myclass_id', $classId)
+            ->with(['examName', 'examType', 'examPart', 'examMode'])
+            ->orderBy('exam_name_id')
+            ->orderBy('exam_part_id')
+            ->get();
+        
+        // Group by exam_name_id first, then by exam_part_id
+        $grouped = [];
+        foreach ($examDetails as $detail) {
+            $examNameId = $detail->exam_name_id;
+            $examPartId = $detail->exam_part_id;
+            
+            if (!isset($grouped[$examNameId])) {
+                $grouped[$examNameId] = [];
+            }
+            
+            if (!isset($grouped[$examNameId][$examPartId])) {
+                $grouped[$examNameId][$examPartId] = [];
+            }
+            
+            $grouped[$examNameId][$examPartId][] = $detail;
+        }
+        
+        return $grouped;
+    }
+    
+    public function getExamClassSubjectsForClass($classId)
+    {
+        return Exam06ClassSubject::whereHas('myclass', function($query) use ($classId) {
+            $query->where('id', $classId);
+        })
+        ->with(['subject.subjectType', 'myclass', 'examDetail'])
+        ->orderBy('subject_id')
+        ->get();
+    }
+    
+    public function getExamClassSubjectsGroupedByType($classId)
+    {
+        $classSubjects = $this->getExamClassSubjectsForClass($classId);
+        
+        // Group by subject type
+        $grouped = $classSubjects->groupBy(function ($item) {
+            return $item->subject->subject_type_id;
+        });
+        
+        // Sort by subject_type_id
+        return $grouped->sortKeys();
+    }
+    
     public function getExistingMarksEntry($myclassSectionId, $examDetailId, $studentcrId)
     {
         return Exam10MarksEntry::where('myclass_section_id', $myclassSectionId)

@@ -54,8 +54,8 @@
             @php
                 $activeClass = $classes[$activeTab];
                 $classSections = $this->getClassSections($activeClass->id);
-                $subjectGroups = $this->getClassSubjectsGroupedByType($activeClass->id);
-                $examDetailsGrouped = $this->getExamDetailsForClass($activeClass->id);
+                $subjectGroups = $this->getExamClassSubjectsGroupedByType($activeClass->id);
+                $examDetailsGrouped = $this->getExamDetailsGroupedByExamNameAndPart($activeClass->id);
             @endphp
             
             @if($classSections->count() > 0 && $subjectGroups->count() > 0)
@@ -80,7 +80,7 @@
                                                     Student
                                                 </th>
                                                 
-                                                <!-- Subject Type Headers -->
+                                                <!-- Subject Type Headers ordered by subject_type_id -->
                                                 @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
                                                     @php
                                                         $subjectType = $subjectTypes->firstWhere('id', $subjectTypeId);
@@ -107,38 +107,13 @@
                                                     @endforeach
                                                 @endforeach
                                             </tr>
-                                            
-                                            <!-- Exam Structure Headers -->
-                                            <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
-                                                    Name
-                                                </th>
-                                                
-                                                @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
-                                                    @foreach($subjectsOfType as $classSubject)
-                                                        @php
-                                                            $examDetail = $classSubject->examDetail;
-                                                        @endphp
-                                                        <th class="px-3 py-2 text-center text-xs font-medium text-purple-700 uppercase tracking-wider bg-purple-50 border border-gray-200">
-                                                            <div class="text-xs text-gray-500 mb-1">
-                                                                {{ $examDetail->examName->name ?? 'N/A' }}
-                                                            </div>
-                                                            <div class="text-xs text-gray-500">
-                                                                {{ $examDetail->examType->name ?? 'N/A' }}
-                                                            </div>
-                                                            <div class="text-xs text-gray-500">
-                                                                {{ $examDetail->examPart->name ?? 'N/A' }}
-                                                            </div>
-                                                        </th>
-                                                    @endforeach
-                                                @endforeach
-                                            </tr>
                                         </thead>
                                         
                                         <tbody class="bg-white divide-y divide-gray-200">
                                             @foreach($studentsInSection as $student)
-                                                <tr class="hover:bg-gray-50">
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-200">
+                                                <!-- Main student row -->
+                                                <tr class="hover:bg-gray-50 bg-gray-100">
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 sticky left-0 bg-gray-100 z-10 border-r border-gray-200" colspan="{{ $subjectGroups->count() + 1 }}">
                                                         <div class="flex items-center">
                                                             <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
                                                                 <span class="text-blue-800 font-medium">{{ $student->roll_no ?? 'N/A' }}</span>
@@ -149,60 +124,69 @@
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    
-                                                    <!-- Marks Entry Cells -->
-                                                    @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
-                                                        @foreach($subjectsOfType as $classSubject)
-                                                            @php
-                                                                $examDetail = $classSubject->examDetail;
-                                                                $existingRecord = $this->getExistingMarksEntry($section->id, $examDetail->id, $student->id);
-                                                                $cellKey = $section->id . '_' . $examDetail->id . '_' . $student->id;
-                                                            @endphp
-                                                            <td class="px-3 py-3 whitespace-nowrap text-center border border-gray-200 bg-white">
-                                                                <div class="space-y-2">
-                                                                    <input
-                                                                        wire:model="formData.{{ $cellKey }}.exam_marks"
-                                                                        type="number"
-                                                                        step="0.01"
-                                                                        min="0"
-                                                                        max="100"
-                                                                        class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 @if(!$isEditingEnabled) bg-gray-100 cursor-not-allowed @endif"
-                                                                        placeholder="Marks"
-                                                                        @if(!$isEditingEnabled) disabled @endif
-                                                                    />
-                                                                    <div class="flex items-center justify-center">
-                                                                        <input
-                                                                            wire:model="formData.{{ $cellKey }}.is_absent"
-                                                                            type="checkbox"
-                                                                            class="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded @if(!$isEditingEnabled) cursor-not-allowed @endif"
-                                                                            @if(!$isEditingEnabled) disabled @endif
-                                                                        />
-                                                                        <label class="ml-1 text-xs text-gray-500">Absent</label>
-                                                                    </div>
-                                                                    <select 
-                                                                        wire:model="formData.{{ $cellKey }}.grade_id"
-                                                                        class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 @if(!$isEditingEnabled) bg-gray-100 cursor-not-allowed @endif"
-                                                                        @if(!$isEditingEnabled) disabled @endif
-                                                                    >
-                                                                        <option value="">Grade</option>
-                                                                        @foreach($grades as $grade)
-                                                                            <option value="{{ $grade->id }}">
-                                                                                {{ $grade->name }}
-                                                                            </option>
-                                                                        @endforeach
-                                                                    </select>
-                                                                    <button 
-                                                                        wire:click="saveMarksEntry({{ $section->id }}, {{ $examDetail->id }}, {{ $student->id }})"
-                                                                        class="w-full px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 @if(!$isEditingEnabled) opacity-50 cursor-not-allowed @endif"
-                                                                        @if(!$isEditingEnabled) disabled @endif
-                                                                    >
-                                                                        Save
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        @endforeach
-                                                    @endforeach
                                                 </tr>
+                                                
+                                                <!-- Nested exam name rows -->
+                                                @foreach($examDetailsGrouped as $examNameId => $examPartsGrouped)
+                                                    @php
+                                                        $examName = $examNames->firstWhere('id', $examNameId);
+                                                    @endphp
+                                                    <tr class="bg-blue-50">
+                                                        <td class="px-6 py-2 text-sm font-bold text-blue-800 bg-blue-100 border-b border-blue-200" colspan="{{ $subjectGroups->count() + 1 }}">
+                                                            <span class="font-semibold">{{ $examName->name ?? 'Unknown Exam' }}</span>
+                                                        </td>
+                                                    </tr>
+                                                    
+                                                    <!-- Nested exam part rows -->
+                                                    @foreach($examPartsGrouped as $examPartId => $details)
+                                                        @php
+                                                            $examPart = $examParts->firstWhere('id', $examPartId);
+                                                        @endphp
+                                                        <tr class="bg-gray-50">
+                                                            <td class="px-6 py-1 text-xs font-medium text-gray-700 bg-gray-100 border-b border-gray-200" colspan="{{ $subjectGroups->count() + 1 }}">
+                                                                <span class="font-semibold">{{ $examPart->name ?? 'Unknown Part' }}</span>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Row with actual marks for this exam part -->
+                                                        <tr class="hover:bg-gray-50">
+                                                            <td class="px-6 py-2 text-xs font-medium text-gray-700 bg-gray-50 border-b border-gray-200">
+                                                                Marks:
+                                                            </td>
+                                                            
+                                                            @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
+                                                                @foreach($subjectsOfType as $classSubject)
+                                                                    @php
+                                                                        // Find the specific exam detail for this subject in this exam part
+                                                                        $detailForSubject = null;
+                                                                        foreach($details as $detail) {
+                                                                            if($detail->subject_id == $classSubject->subject_id) {
+                                                                                $detailForSubject = $detail;
+                                                                                break;
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        if($detailForSubject) {
+                                                                            // Get existing marks entry for this specific exam part
+                                                                            $existingRecord = $this->getExistingMarksEntry($section->id, $detailForSubject->id, $student->id);
+                                                                            $marks = $existingRecord ? $existingRecord->getDisplayMarks() : '';
+                                                                            if ($existingRecord && $existingRecord->isAbsent()) {
+                                                                                $marks = 'AB';
+                                                                            }
+                                                                        } else {
+                                                                            $marks = '';
+                                                                        }
+                                                                    @endphp
+                                                                    <td class="px-3 py-3 whitespace-nowrap text-center border border-gray-200 bg-white">
+                                                                        <div class="text-sm font-medium">
+                                                                            {{ $marks }}
+                                                                        </div>
+                                                                    </td>
+                                                                @endforeach
+                                                            @endforeach
+                                                        </tr>
+                                                    @endforeach
+                                                @endforeach
                                             @endforeach
                                         </tbody>
                                     </table>

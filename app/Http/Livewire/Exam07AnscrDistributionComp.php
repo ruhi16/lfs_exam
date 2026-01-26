@@ -138,6 +138,24 @@ class Exam07AnscrDistributionComp extends Component
             ->get();
     }
     
+    public function getFormativeSubjects($classId)
+    {
+        // Get Formative subject type
+        $formativeType = SubjectType::where('name', 'Formative')->first();
+        
+        if (!$formativeType) {
+            return collect();
+        }
+        
+        return MyclassSubject::where('myclass_id', $classId)
+            ->whereHas('subject', function($query) use ($formativeType) {
+                $query->where('subject_type_id', $formativeType->id);
+            })
+            ->with(['subject', 'myclass'])
+            ->orderBy('subject_id')
+            ->get();
+    }
+    
     public function getExamDetailsForClass($classId)
     {
         return Exam05Detail::where('myclass_id', $classId)
