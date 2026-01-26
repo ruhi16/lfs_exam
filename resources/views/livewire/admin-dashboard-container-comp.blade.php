@@ -136,22 +136,18 @@
                 @if($currentComponent === 'dashboard')
                     {{-- @livewire('admin.dashboard-stats') --}}
 
-                    {{-- Users Section --}}
+                {{-- Users Section --}}
                 @elseif($currentComponent === 'users.all')
-                    {{-- @livewire('admin.users.all-users') --}}
                     @livewire('supadmin-d-c-users-comp')
-                @elseif($currentComponent === 'users.create')
-                    {{-- @livewire('admin.users.create-user') --}}
-                @elseif($currentComponent === 'users.roles')
-                    {{-- @livewire('admin.users.user-roles') --}}
-                @elseif($currentComponent === 'users.permissions')
-                    {{-- @livewire('admin.users.user-permissions') --}}
+                
 
 
+
+                {{-- Basic Section --}}
                 @elseif($currentComponent === 'basic.wall')
                     @livewire('admin-dc-basic-wall-comp')
 
-                    {{-- Products Section --}}
+                    
                 @elseif($currentComponent === 'basic.school')
                     @livewire('basic01-school-comp')
 
@@ -184,10 +180,6 @@
 
 
 
-
-                @elseif($currentComponent === 'products.inventory')
-                    {{-- @livewire('admin.products.product-inventory') --}}
-
                 
                 
                 {{-- Exam Details Section --}}
@@ -214,34 +206,6 @@
 
                 
 
-
-
-
-                    {{-- Orders Section --}}
-                @elseif($currentComponent === 'orders.all')
-                    {{-- @livewire('admin.orders.all-orders') --}}
-                @elseif($currentComponent === 'orders.pending')
-                    {{-- @livewire('admin.orders.pending-orders') --}}
-                @elseif($currentComponent === 'orders.completed')
-                    {{-- @livewire('admin.orders.completed-orders') --}}
-                @elseif($currentComponent === 'orders.cancelled')
-                    {{-- @livewire('admin.orders.cancelled-orders') --}}
-
-                    {{-- Reports Section --}}
-                @elseif($currentComponent === 'reports.sales')
-                    {{-- @livewire('admin.reports.sales-report') --}}
-                @elseif($currentComponent === 'reports.analytics')
-                    {{-- @livewire('admin.reports.analytics-report') --}}
-                @elseif($currentComponent === 'reports.customers')
-                    {{-- @livewire('admin.reports.customer-report') --}}
-
-                    {{-- Settings Section --}}
-                @elseif($currentComponent === 'settings.general')
-                    {{-- @livewire('admin.settings.general-settings') --}}
-                @elseif($currentComponent === 'settings.security')
-                    {{-- @livewire('admin.settings.security-settings') --}}
-                @elseif($currentComponent === 'settings.email')
-                    {{-- @livewire('admin.settings.email-settings') --}}
 
                 @else
                     <div class="bg-white rounded-lg shadow p-6">
