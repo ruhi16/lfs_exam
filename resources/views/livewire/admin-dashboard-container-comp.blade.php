@@ -186,6 +186,8 @@
                 @elseif($currentComponent === 'exam.detail')
                     @livewire('exam05-exam-detail-comp')
 
+                @elseif($currentComponent === 'exam.fmpm')
+                    @livewire('exam06-exam-fmpm-comp')
 
 
                 @elseif($currentComponent === 'exam.exam_name')

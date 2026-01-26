@@ -97,6 +97,10 @@ class AdminDashboardContainerComp extends Component
                     'component' => 'exam.detail'
                 ],
                 [
+                    'name' => 'Exam FMPM',
+                    'component' => 'exam.fmpm'
+                ],
+                [
                     'name' => 'Exam Name',
                     'component' => 'exam.exam_name'
                 ],

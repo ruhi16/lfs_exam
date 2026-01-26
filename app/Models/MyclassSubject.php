@@ -47,6 +47,11 @@ class MyclassSubject extends Model
         return $this->belongsTo(\App\Models\Subject::class, 'subject_id', 'id');
     }
 
+    // Accessor to get the subject type through the subject
+    public function getSubjectTypeAttribute()
+    {
+        return $this->subject->subject_type_id ? $this->subject->subjectType : null;
+    }
 
     public function user()
     {
