@@ -208,6 +208,18 @@ class Exam12ExamMarkRegisterComp extends Component
         return $grouped;
     }
     
+    public function getExamDetailsForStudent($classId)
+    {
+        $examDetails = Exam05Detail::where('myclass_id', $classId)
+            ->with(['examName', 'examType', 'examPart', 'examMode'])
+            ->orderBy('exam_name_id')
+            ->orderBy('exam_part_id')
+            ->get()
+            ->groupBy('exam_name_id');
+        
+        return $examDetails;
+    }
+    
     public function getExamClassSubjectsForClass($classId)
     {
         return Exam06ClassSubject::whereHas('myclass', function($query) use ($classId) {
@@ -228,6 +240,19 @@ class Exam12ExamMarkRegisterComp extends Component
         });
         
         // Sort by subject_type_id
+        return $grouped->sortKeys();
+    }
+    
+    public function getExamClassSubjectsGroupedByExamType($classId)
+    {
+        $classSubjects = $this->getExamClassSubjectsForClass($classId);
+        
+        // Group by exam type
+        $grouped = $classSubjects->groupBy(function ($item) {
+            return $item->examDetail->exam_type_id;
+        });
+        
+        // Sort by exam_type_id
         return $grouped->sortKeys();
     }
     
