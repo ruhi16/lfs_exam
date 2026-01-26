@@ -137,6 +137,10 @@ class AdminDashboardContainerComp extends Component
                     'component' => 'marks_entry.anscr_distribution'
                 ],
                 [
+                    'name' => 'Marks Entry',
+                    'component' => 'marks_entry.marks_entry'
+                ],
+                [
                     'name' => 'Mark Register',
                     'component' => 'marks_entry.mark_register'
                 ],

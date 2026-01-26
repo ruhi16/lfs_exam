@@ -217,6 +217,10 @@
                 @elseif($currentComponent === 'marks_entry.anscr_distribution')
                     @livewire('exam07-anscr-distribution-comp')
 
+
+                @elseif($currentComponent === 'marks_entry.marks_entry')
+                    @livewire('exam10-exam-marks-entry-comp')
+
                 @elseif($currentComponent === 'marks_entry.mark_register')
                     @livewire('exam12-exam-mark-register-comp')
 
