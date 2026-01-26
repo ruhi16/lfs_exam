@@ -85,7 +85,6 @@ class AdminDashboardContainerComp extends Component
                     'name' => 'Class-Subject',
                     'component' => 'basic.class_subject'
                 ]
-
             ]
         ],
         [
@@ -95,7 +94,7 @@ class AdminDashboardContainerComp extends Component
             'submenu' => [
                 [
                     'name' => 'Exam Details',
-                    'component' => 'exam.details'
+                    'component' => 'exam.detail'
                 ],
                 [
                     'name' => 'Exam Name',
@@ -107,7 +106,7 @@ class AdminDashboardContainerComp extends Component
                 ],
                 [
                     'name' => 'Exam Parts',
-                    'component' => 'exam.exam_parts'
+                    'component' => 'exam.exam_part'
                 ],
                 
                 [

@@ -120,6 +120,26 @@ Route::get('/test-class-subject', '\\App\\Http\\Livewire\\Basic11ClassSubjectCom
 Route::get('/test-teacher', '\\App\\Http\\Livewire\\Basic07TeacherComp')
     ->name('test.teacher');
 
+// Test route for Exam Name component
+Route::get('/test-exam-name', '\\App\\Http\\Livewire\\Exam01NameComp')
+    ->name('test.exam.name');
+
+// Test route for Exam Type component
+Route::get('/test-exam-type', '\\App\\Http\\Livewire\\Exam02ExamTypeComp')
+    ->name('test.exam.type');
+
+// Test route for Exam Part component
+Route::get('/test-exam-part', '\\App\\Http\\Livewire\\Exam03ExamPartComp')
+    ->name('test.exam.part');
+
+// Test route for Exam Mode component
+Route::get('/test-exam-mode', '\\App\\Http\\Livewire\\Exam04ExamModeComp')
+    ->name('test.exam.mode');
+
+// Test route for Exam Detail component
+Route::get('/test-exam-detail', '\\App\\Http\\Livewire\\Exam05ExamDetailComp')
+    ->name('test.exam.detail');
+
 // Test route for Teacher Modal component
 Route::get('/test-teacher-modal', function () {
     return view('test-teacher-modal');

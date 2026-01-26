@@ -48,30 +48,34 @@ class ExamSettingTestSeeder extends Seeder
         // Create Subjects
         $english = Subject::firstOrCreate([
             'name' => 'English',
-            'code' => 'ENG',
             'subject_type_id' => $writtenType->id,
             'is_active' => true
+        ], [
+            'description' => 'English subject'
         ]);
 
         $math = Subject::firstOrCreate([
             'name' => 'Mathematics',
-            'code' => 'MATH',
             'subject_type_id' => $writtenType->id,
             'is_active' => true
+        ], [
+            'description' => 'Mathematics subject'
         ]);
 
         $science = Subject::firstOrCreate([
             'name' => 'Science',
-            'code' => 'SCI',
             'subject_type_id' => $practicalType->id,
             'is_active' => true
+        ], [
+            'description' => 'Science subject'
         ]);
 
         $music = Subject::firstOrCreate([
             'name' => 'Music',
-            'code' => 'MUS',
             'subject_type_id' => $practicalType->id,
             'is_active' => true
+        ], [
+            'description' => 'Music subject'
         ]);
 
         // Create Exam Names
@@ -100,6 +104,36 @@ class ExamSettingTestSeeder extends Seeder
         $practical = Exam02Type::firstOrCreate([
             'name' => 'Practical',
             'description' => 'Practical examination',
+            'order_index' => 2,
+            'is_active' => true
+        ]);
+
+        // Create Exam Parts
+        $part1 = \App\Models\Exam03Part::firstOrCreate([
+            'name' => 'Part 1',
+            'description' => 'First part of exam',
+            'order_index' => 1,
+            'is_active' => true
+        ]);
+
+        $part2 = \App\Models\Exam03Part::firstOrCreate([
+            'name' => 'Part 2',
+            'description' => 'Second part of exam',
+            'order_index' => 2,
+            'is_active' => true
+        ]);
+
+        // Create Exam Modes
+        $writtenMode = \App\Models\Exam04Mode::firstOrCreate([
+            'name' => 'Written',
+            'description' => 'Written exam mode',
+            'order_index' => 1,
+            'is_active' => true
+        ]);
+
+        $oralMode = \App\Models\Exam04Mode::firstOrCreate([
+            'name' => 'Oral',
+            'description' => 'Oral exam mode',
             'order_index' => 2,
             'is_active' => true
         ]);
@@ -148,6 +182,8 @@ class ExamSettingTestSeeder extends Seeder
             'myclass_id' => $class1->id,
             'exam_name_id' => $firstTerm->id,
             'exam_type_id' => $written->id,
+            'exam_part_id' => $part1->id,  // Add exam part
+            'exam_mode_id' => $writtenMode->id,  // Add exam mode
             'order_index' => 1,
             'is_active' => true
         ]);
@@ -158,6 +194,8 @@ class ExamSettingTestSeeder extends Seeder
             'myclass_id' => $class1->id,
             'exam_name_id' => $firstTerm->id,
             'exam_type_id' => $practical->id,
+            'exam_part_id' => $part2->id,  // Add exam part
+            'exam_mode_id' => $oralMode->id,  // Add exam mode
             'order_index' => 2,
             'is_active' => true
         ]);
@@ -168,6 +206,8 @@ class ExamSettingTestSeeder extends Seeder
             'myclass_id' => $class1->id,
             'exam_name_id' => $midTerm->id,
             'exam_type_id' => $written->id,
+            'exam_part_id' => $part1->id,  // Add exam part
+            'exam_mode_id' => $writtenMode->id,  // Add exam mode
             'order_index' => 3,
             'is_active' => true
         ]);

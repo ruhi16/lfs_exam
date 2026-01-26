@@ -183,8 +183,39 @@
                     @livewire('basic11-class-subject-comp')
 
 
+
+
                 @elseif($currentComponent === 'products.inventory')
                     {{-- @livewire('admin.products.product-inventory') --}}
+
+                
+                
+                {{-- Exam Details Section --}}
+                @elseif($currentComponent === 'exam.detail')
+                    @livewire('exam05-exam-detail-comp')
+
+
+
+                @elseif($currentComponent === 'exam.exam_name')
+                    @livewire('exam01-exam-name-comp')
+
+
+
+                @elseif($currentComponent === 'exam.exam_type')
+                    @livewire('exam02-exam-type-comp')
+
+
+                @elseif($currentComponent === 'exam.exam_part')
+                    @livewire('exam03-exam-part-comp')
+
+                
+                @elseif($currentComponent === 'exam.exam_mode')
+                    @livewire('exam04-exam-mode-comp')
+
+                
+
+
+
 
                     {{-- Orders Section --}}
                 @elseif($currentComponent === 'orders.all')
