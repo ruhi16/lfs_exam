@@ -7,7 +7,7 @@ use App\Models\Exam10MarksEntry;
 use App\Models\Myclass;
 use App\Models\MyclassSection;
 use App\Models\Studentcr;
-use App\Models\Exam06ClassSubject;
+use App\Models\MyclassSubject;
 use App\Models\Exam05Detail;
 use App\Models\Subject;
 use App\Models\SubjectType;
@@ -66,10 +66,10 @@ class Exam12ExamMarkRegisterComp extends Component
         $this->users = User::orderBy('name')->get();
         
         // Load existing exam class subjects
-        $this->examClassSubjects = Exam06ClassSubject::with([
+        $this->examClassSubjects = MyclassSubject::with([
             'myclass', 
             'subject', 
-            'examDetail'
+            'subject.subjectType'
         ])->get();
         
         // Load existing marks entries
@@ -145,10 +145,10 @@ class Exam12ExamMarkRegisterComp extends Component
     
     public function getClassSubjectsGroupedByType($classId)
     {
-        $classSubjects = Exam06ClassSubject::whereHas('myclass', function($query) use ($classId) {
+        $classSubjects = MyclassSubject::whereHas('myclass', function($query) use ($classId) {
             $query->where('id', $classId);
         })
-        ->with(['subject.subjectType', 'myclass', 'examDetail'])
+        ->with(['subject.subjectType', 'myclass'])
         ->get();
         
         // Group by subject type
@@ -222,10 +222,10 @@ class Exam12ExamMarkRegisterComp extends Component
     
     public function getExamClassSubjectsForClass($classId)
     {
-        return Exam06ClassSubject::whereHas('myclass', function($query) use ($classId) {
+        return MyclassSubject::whereHas('myclass', function($query) use ($classId) {
             $query->where('id', $classId);
         })
-        ->with(['subject.subjectType', 'myclass', 'examDetail'])
+        ->with(['subject.subjectType', 'myclass'])
         ->orderBy('subject_id')
         ->get();
     }
@@ -239,8 +239,27 @@ class Exam12ExamMarkRegisterComp extends Component
             return $item->subject->subject_type_id;
         });
         
-        // Sort by subject_type_id
-        return $grouped->sortKeys();
+        // Sort by subject_type_id to ensure Summative (usually id 1) comes before Formative (usually id 2)
+        $sortedGrouped = collect();
+        
+        // First add Summative subjects (assuming id 1)
+        if ($grouped->has(1)) {
+            $sortedGrouped[1] = $grouped[1];
+        }
+        
+        // Then add Formative subjects (assuming id 2)
+        if ($grouped->has(2)) {
+            $sortedGrouped[2] = $grouped[2];
+        }
+        
+        // Add any other subject types
+        foreach ($grouped as $subjectTypeId => $subjects) {
+            if ($subjectTypeId != 1 && $subjectTypeId != 2) {
+                $sortedGrouped[$subjectTypeId] = $subjects;
+            }
+        }
+        
+        return $sortedGrouped;
     }
     
     public function getExamClassSubjectsGroupedByExamType($classId)
