@@ -14,6 +14,7 @@ use App\Models\SubjectType;
 use App\Models\Exam01Name;
 use App\Models\Exam02Type;
 use App\Models\Exam03Part;
+use App\Models\Exam06ClassSubject;
 use App\Models\Exam08Grade;
 use App\Models\Session;
 use App\Models\School;
@@ -273,6 +274,72 @@ class Exam12ExamMarkRegisterComp extends Component
         
         // Sort by exam_type_id
         return $grouped->sortKeys();
+    }
+    
+    public function getExamClassSubjectId($examDetailId, $myclassId, $subjectId)
+    {
+        // Find the exam_class_subject_id using Exam06ClassSubject model based on exam_detail_id, myclass_id, and subject_id
+        $examClassSubject = Exam06ClassSubject::where('exam_detail_id', $examDetailId)
+            ->where('myclass_id', $myclassId)
+            ->where('subject_id', $subjectId)
+            ->first();
+            
+        return $examClassSubject ? $examClassSubject->id : null;
+    }
+    
+    public function getMarksDataArray($myclassSectionId)
+    {
+        // Get all marks entries for the given myclass_section_id
+        $marksEntries = Exam10MarksEntry::where('myclass_section_id', $myclassSectionId)
+            ->with(['examDetail', 'studentcr'])
+            ->get();
+            
+        $marksData = [];
+        
+        foreach ($marksEntries as $entry) {
+            $studentcrId = $entry->studentcr_id;
+            $examDetailId = $entry->exam_detail_id;
+            $subjectId = $entry->examDetail->subject_id;
+            
+            // Initialize the array structure if it doesn't exist
+            if (!isset($marksData[$studentcrId])) {
+                $marksData[$studentcrId] = [];
+            }
+            
+            if (!isset($marksData[$studentcrId][$examDetailId])) {
+                $marksData[$studentcrId][$examDetailId] = [];
+            }
+            
+            // Store the marks data
+            $marksData[$studentcrId][$examDetailId][$subjectId] = [
+                'exam_marks' => $entry->exam_marks,
+                'grade_id' => $entry->grade_id,
+                'is_absent' => $entry->is_absent,
+                'session_id' => $entry->session_id,
+                'school_id' => $entry->school_id,
+                'user_id' => $entry->user_id,
+                'approved_by' => $entry->approved_by,
+                'is_active' => $entry->is_active,
+                'is_finalized' => $entry->is_finalized,
+                'status' => $entry->status,
+                'remarks' => $entry->remarks,
+                'exam_class_subject_id' => $entry->exam_class_subject_id,
+                'created_at' => $entry->created_at,
+                'updated_at' => $entry->updated_at
+            ];
+        }
+        
+        return $marksData;
+    }
+    
+    public function debugMarksData($myclassSectionId)
+    {
+        $marksData = $this->getMarksDataArray($myclassSectionId);
+        return [
+            'section_id' => $myclassSectionId,
+            'total_students' => count($marksData),
+            'sample_data' => array_slice($marksData, 0, 1)
+        ];
     }
     
     public function getExistingMarksEntry($myclassSectionId, $examDetailId, $studentcrId)

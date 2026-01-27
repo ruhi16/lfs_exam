@@ -135,6 +135,32 @@
                                                         @foreach($subjectsOfType as $classSubject)
                                                             <td class="px-3 py-3 text-center border border-gray-200 bg-white">
                                                                 <!-- Subject marks will be displayed here -->
+                                                                @php
+                                                                    // Get all exam details for this class to find matching ones for this subject
+                                                                    $classExamDetails = $this->getExamDetailsForClass($activeClass->id);
+                                                                    $subjectMarks = '';
+                                                                    
+                                                                    // Look for exam details that have this subject
+                                                                    foreach($classExamDetails as $examDetails) {
+                                                                        foreach($examDetails as $examDetail) {
+                                                                            if($examDetail->subject_id == $classSubject->subject_id) {
+                                                                                // Found an exam detail for this subject, now get the marks
+                                                                                $existingRecord = $this->getExistingMarksEntry($section->id, $examDetail->id, $student->id);
+                                                                                if($existingRecord) {
+                                                                                    $subjectMarks = $existingRecord->getDisplayMarks();
+                                                                                    break 2; // Break out of both loops
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                @endphp
+                                                                <div class="text-sm font-medium">
+                                                                    @if($subjectMarks !== '')
+                                                                        {{ $subjectMarks }}
+                                                                    @else
+                                                                        <span class="text-gray-400">-</span>
+                                                                    @endif
+                                                                </div>
                                                             </td>
                                                         @endforeach
                                                     @endforeach
@@ -185,7 +211,9 @@
                                                                         // Find marks for this subject across all exam parts of this exam name
                                                                         $totalMarks = '';
                                                                         $hasMarks = false;
+                                                                        $test = null;
                                                                         foreach ($examPartsGrouped as $examPartId => $details) {
+                                                                            $test = $details;
                                                                             foreach ($details as $detail) {
                                                                                 if ($detail->subject_id == $classSubject->subject_id) {
                                                                                     $existingRecord = $this->getExistingMarksEntry($section->id, $detail->id, $student->id);
