@@ -9,45 +9,15 @@
             Class: <strong>{{ $myclassSection->myclass->name ?? 'N/A' }}</strong> | 
             Section: <strong>{{ $myclassSection->section->name ?? 'N/A' }}</strong>
         </p>
-    </div>
-    
-    <!-- Subject and Exam Name Filters -->
-    <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="text-sm font-medium text-gray-700">Filter by Subject:</label>
-                <select wire:model="selectedSubjectId" 
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">All Subjects</option>
-                    @foreach($subjects as $subject)
-                        <option value="{{ $subject->subject_id }}">{{ $subject->subject->name ?? 'N/A' }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="text-sm font-medium text-gray-700">Filter by Exam Name:</label>
-                <select wire:model="selectedExamNameId" 
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">All Exam Names</option>
-                    @foreach($examNames as $examNameId => $examName)
-                        <option value="{{ $examNameId }}">{{ is_object($examName) ? ($examName->name ?? 'N/A') : ($examName['name'] ?? 'N/A') }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        @if($selectedSubjectId || $selectedExamNameId)
-            <div class="mt-2 text-sm text-gray-600">
-                @if($selectedSubjectId)
-                    <span>Subject: <strong>{{ ($subjects->firstWhere('subject_id', $selectedSubjectId) && isset($subjects->firstWhere('subject_id', $selectedSubjectId)->subject->name)) ? $subjects->firstWhere('subject_id', $selectedSubjectId)->subject->name : 'N/A' }}</strong></span>
-                @endif
-                @if($selectedSubjectId && $selectedExamNameId)
-                    <span class="mx-2">|</span>
-                @endif
-                @if($selectedExamNameId)
-                    <span>Exam: <strong>{{ isset($examNames[$selectedExamNameId]) ? (is_object($examNames[$selectedExamNameId]) ? $examNames[$selectedExamNameId]->name : ($examNames[$selectedExamNameId]['name'] ?? 'N/A')) : 'N/A' }}</strong></span>
-                @endif
-            </div>
+        @if($teacher)
+            <p class="text-gray-600 mt-1">
+                Assigned Teacher: <strong>{{ $teacher->user ? $teacher->user->name : ($teacher->name ?? 'N/A') }}</strong>
+            </p>
         @endif
+        <p class="text-gray-600 mt-1 bg-blue-50 p-2 rounded">
+            Subject: <strong>{{ $examClassSubject->subject->name ?? 'N/A' }}</strong> 
+            (Full Marks: {{ $examClassSubject->full_marks ?? 'N/A' }})
+        </p>
     </div>
     
     <!-- Status Messages -->
@@ -81,7 +51,7 @@
     
     <!-- Content Area -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        @if($students->count() > 0 && count($filteredExamClassSubjects) > 0)
+        @if($students->count() > 0)
             <div class="p-6">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -94,13 +64,11 @@
                                     Exam Part
                                 </th>
                                 
-                                <!-- Exam Class Subjects Headers -->
-                                @foreach($filteredExamClassSubjects as $examClassSubject)
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
-                                        {{ $examClassSubject->subject->name ?? 'N/A' }}<br>
-                                        <span class="text-[10px] text-gray-600">{{ $examClassSubject->examDetail->examName->name ?? 'N/A' }} - {{ $examClassSubject->examDetail->examType->name ?? 'N/A' }}</span>
-                                    </th>
-                                @endforeach
+                                <!-- Single Subject Header -->
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
+                                    {{ $examClassSubject->subject->name ?? 'N/A' }}<br>
+                                    <span class="text-[10px] text-gray-600">{{ $examDetail->examName->name ?? 'N/A' }} - {{ $examDetail->examType->name ?? 'N/A' }}</span>
+                                </th>
                             </tr>
                         </thead>
                         
@@ -126,35 +94,33 @@
                                             {{ is_object($examPart) ? ($examPart->name ?? 'N/A') : ($examPart['name'] ?? 'N/A') }}
                                         </td>
                                         
-                                        <!-- Exam Class Subjects Cells -->
-                                        @foreach($filteredExamClassSubjects as $examClassSubject)
-                                            @php
-                                                $cellKey = $myclassSectionId . '_' . $student->id . '_' . $examClassSubject->id . '_' . (is_object($examPart) ? ($examPart['exam_detail_id'] ?? $examPart->exam_detail_id) : ($examPart['exam_detail_id'] ?? ''));
-                                            @endphp
-                                            <td class="px-6 py-4 border border-gray-200 bg-white">
-                                                <div class="flex items-center space-x-2">
+                                        <!-- Single Subject Cell -->
+                                        @php
+                                            $cellKey = $myclassSectionId . '_' . $student->id . '_' . $examClassSubjectId . '_' . (is_object($examPart) ? $examPart->exam_detail_id : $examPart['exam_detail_id']);
+                                        @endphp
+                                        <td class="px-6 py-4 border border-gray-200 bg-white">
+                                            <div class="flex items-center space-x-2">
+                                                <input
+                                                    type="number"
+                                                    wire:model="formData.{{ $cellKey }}.marks"
+                                                    class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 {{ !$isEditingEnabled ? 'bg-gray-100 cursor-not-allowed' : '' }} {{ data_get($formData, "{$cellKey}.is_absent") ? 'bg-gray-100 cursor-not-allowed opacity-50' : '' }}"
+                                                    placeholder="Enter marks"
+                                                    min="0"
+                                                    max="{{ $examClassSubject->full_marks ?? 100 }}"
+                                                    {{ !$isEditingEnabled || data_get($formData, "{$cellKey}.is_absent") ? 'disabled' : '' }}
+                                                />
+                                                <div class="flex items-center">
                                                     <input
-                                                        type="number"
-                                                        wire:model="formData.{{ $cellKey }}.marks"
-                                                        class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 {{ !$isEditingEnabled ? 'bg-gray-100 cursor-not-allowed' : '' }} {{ data_get($formData, "{$cellKey}.is_absent") ? 'bg-gray-100 cursor-not-allowed opacity-50' : '' }}"
-                                                        placeholder="Enter marks"
-                                                        min="0"
-                                                        max="{{ $examClassSubject->full_marks ?? 100 }}"
-                                                        {{ !$isEditingEnabled || data_get($formData, "{$cellKey}.is_absent") ? 'disabled' : '' }}
+                                                        type="checkbox"
+                                                        wire:click="clearMarks('{{ $cellKey }}')"
+                                                        wire:model="formData.{{ $cellKey }}.is_absent"
+                                                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded {{ !$isEditingEnabled ? 'cursor-not-allowed' : '' }}"
+                                                        {{ !$isEditingEnabled ? 'disabled' : '' }}
                                                     />
-                                                    <div class="flex items-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            wire:click="clearMarks('{{ $cellKey }}')"
-                                                            wire:model="formData.{{ $cellKey }}.is_absent"
-                                                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded {{ !$isEditingEnabled ? 'cursor-not-allowed' : '' }}"
-                                                            {{ !$isEditingEnabled ? 'disabled' : '' }}
-                                                        />
-                                                        <span class="ml-1 text-xs text-gray-500">Absent</span>
-                                                    </div>
+                                                    <span class="ml-1 text-xs text-gray-500">Absent</span>
                                                 </div>
-                                            </td>
-                                        @endforeach
+                                            </div>
+                                        </td>
                                     </tr>
                                 @endforeach
                             @endforeach
@@ -179,23 +145,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-1">No Data Found</h3>
-                <p class="text-gray-500">
-                    @if($selectedSubjectId || $selectedExamNameId)
-                        No exam entries found for the selected filters.
-                    @else
-                        No students or exam subjects are available for this selection.
-                    @endif
-                </p>
+                <h3 class="text-lg font-medium text-gray-900 mb-1">No Students Found</h3>
+                <p class="text-gray-500">No students are available for this class and section.</p>
             </div>
         @endif
     </div>
     
     <!-- Footer Info -->
     <div class="mt-6 text-sm text-gray-500">
-        Showing exam marks entries for {{ $students->count() ?? 0 }} students and {{ count($filteredExamClassSubjects) }} subjects
-        @if($selectedSubjectId || $selectedExamNameId)
-            (filtered by selected criteria)
-        @endif
+        Showing exam marks entries for {{ $students->count() ?? 0 }} students in subject: {{ $examClassSubject->subject->name ?? 'N/A' }}
     </div>
 </div>

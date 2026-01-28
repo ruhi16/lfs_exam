@@ -28,6 +28,12 @@ class Exam10ExamMarksEntryIndvComp extends Component
     public $students = [];
     public $examClassSubjects = [];
     public $examParts = [];
+    public $subjects = []; // All available subjects for filtering
+    public $examNames = []; // All available exam names
+    
+    public $selectedSubjectId = null; // Selected subject filter
+    public $selectedExamNameId = null; // Selected exam name filter
+    public $filteredExamClassSubjects = []; // Filtered subjects
     
     public $formData = [];
     public $isEditingEnabled = true;
@@ -54,15 +60,30 @@ class Exam10ExamMarksEntryIndvComp extends Component
             ->orderBy('roll_no')
             ->get();
         
-        // Load exam class subjects for the specific exam detail
+        // Load ALL exam class subjects for this class and section (not just the specific exam detail)
         $this->examClassSubjects = Exam06ClassSubject::where('myclass_id', $this->myclassSection->myclass_id)
-            ->where('exam_detail_id', $this->examDetailId)
-            ->with(['subject', 'examDetail'])
+            ->with(['subject', 'examDetail.examName', 'examDetail.examType'])
             ->get();
         
+        // Get unique subjects for the dropdown
+        $this->subjects = $this->examClassSubjects->unique('subject_id')->values()->all();
+        
+        // Get unique exam names for the dropdown
+        // Create a collection of unique exam names with their IDs and names
+        $uniqueExamDetails = [];
+        foreach ($this->examClassSubjects as $subject) {
+            if ($subject->examDetail && $subject->examDetail->examName) {
+                $uniqueExamDetails[$subject->examDetail->exam_name_id] = $subject->examDetail->examName;
+            }
+        }
+        $this->examNames = $uniqueExamDetails;
+        
+        // Initially show all subjects
+        $this->filteredExamClassSubjects = $this->examClassSubjects;
+                    
         // Load exam parts from the exam detail (don't use exam_part_id in queries)
         $this->examParts = collect([
-            (object)[
+            [
                 'id' => $this->examDetail->exam_part_id, 
                 'name' => $this->examDetail->examPart->name,
                 'exam_detail_id' => $this->examDetailId  // Store the exam detail ID instead
@@ -72,19 +93,61 @@ class Exam10ExamMarksEntryIndvComp extends Component
         $this->loadExistingData();
     }
     
+    public function updatedSelectedSubjectId($subjectId)
+    {
+        $this->applyFilters();
+    }
+    
+    public function updatedSelectedExamNameId($examNameId)
+    {
+        $this->applyFilters();
+    }
+    
+    public function applyFilters()
+    {
+        $filtered = collect($this->examClassSubjects);
+        
+        if ($this->selectedSubjectId) {
+            // Filter exam class subjects by selected subject
+            $filtered = $filtered->filter(function ($examClassSubject) {
+                return $examClassSubject->subject_id == $this->selectedSubjectId;
+            })->values();
+        }
+        
+        if ($this->selectedExamNameId) {
+            // Filter exam class subjects by selected exam name
+            $filtered = $filtered->filter(function ($examClassSubject) {
+                if (is_object($examClassSubject) && $examClassSubject->examDetail) {
+                    return $examClassSubject->examDetail->exam_name_id == $this->selectedExamNameId;
+                } elseif (is_array($examClassSubject) && isset($examClassSubject['examDetail'])) {
+                    return $examClassSubject['examDetail']['exam_name_id'] == $this->selectedExamNameId;
+                }
+                return false;
+            })->values();
+        }
+        
+        $this->filteredExamClassSubjects = $filtered->values();
+        
+        // Reload existing data for the filtered subjects
+        $this->loadExistingData();
+    }
+    
     public function loadExistingData()
     {
+        // Clear existing form data
+        $this->formData = [];
+        
         foreach ($this->students as $student) {
-            foreach ($this->examClassSubjects as $examClassSubject) {
+            foreach ($this->filteredExamClassSubjects as $examClassSubject) {
                 foreach ($this->examParts as $examPart) {
                     // Use exam_detail_id instead of exam_part_id for the query
-                    $cellKey = $this->myclassSectionId . '_' . $student->id . '_' . $examClassSubject->id . '_' . $examPart->exam_detail_id;
+                    $cellKey = $this->myclassSectionId . '_' . $student->id . '_' . $examClassSubject->id . '_' . (is_object($examPart) ? $examPart->exam_detail_id : $examPart['exam_detail_id']);
                     
                     // Query using exam_detail_id since exam_part_id doesn't exist in exam10_marks_entries
                     $existingRecord = Exam10MarksEntry::where('myclass_section_id', $this->myclassSectionId)
                         ->where('studentcr_id', $student->id)
                         ->where('exam_class_subject_id', $examClassSubject->id)
-                        ->where('exam_detail_id', $examPart->exam_detail_id)
+                        ->where('exam_detail_id', is_object($examPart) ? $examPart->exam_detail_id : $examPart['exam_detail_id'])
                         ->first();
                     
                     if ($existingRecord) {
@@ -132,7 +195,7 @@ class Exam10ExamMarksEntryIndvComp extends Component
             
             // Validate marks range if present
             if ($marks !== null && $marks !== '') {
-                $foundSubject = $this->examClassSubjects->firstWhere('id', $examClassSubjectId);
+                $foundSubject = collect($this->filteredExamClassSubjects)->firstWhere('id', $examClassSubjectId);
                 $maxMarks = 100; // Default value
                 if ($foundSubject) {
                     $maxMarks = is_object($foundSubject) ? ($foundSubject->full_marks ?? 100) : ($foundSubject['full_marks'] ?? 100);
@@ -182,7 +245,7 @@ class Exam10ExamMarksEntryIndvComp extends Component
                     
                     // Validate marks range if present
                     if ($marks !== null && $marks !== '') {
-                        $foundSubject = $this->examClassSubjects->firstWhere('id', $examClassSubjectId);
+                        $foundSubject = collect($this->filteredExamClassSubjects)->firstWhere('id', $examClassSubjectId);
                         $maxMarks = 100; // Default value
                         if ($foundSubject) {
                             $maxMarks = is_object($foundSubject) ? ($foundSubject->full_marks ?? 100) : ($foundSubject['full_marks'] ?? 100);
@@ -228,10 +291,15 @@ class Exam10ExamMarksEntryIndvComp extends Component
         return view('livewire.exam10-exam-marks-entry-indv-comp', [
             'students' => $this->students,
             'examClassSubjects' => $this->examClassSubjects,
+            'filteredExamClassSubjects' => $this->filteredExamClassSubjects,
             'examParts' => $this->examParts,
             'formData' => $this->formData,
             'examDetail' => $this->examDetail,
             'myclassSection' => $this->myclassSection,
+            'subjects' => $this->subjects,
+            'examNames' => $this->examNames,
+            'selectedSubjectId' => $this->selectedSubjectId,
+            'selectedExamNameId' => $this->selectedExamNameId,
             'isEditingEnabled' => $this->isEditingEnabled
         ]);
     }

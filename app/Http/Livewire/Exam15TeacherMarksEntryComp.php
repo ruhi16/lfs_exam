@@ -17,6 +17,13 @@ class Exam15TeacherMarksEntryComp extends Component
     public $selectedTeacherId = null;
     public $teachers;
     public $answerScripts = [];
+    
+    // Properties for individual view
+    public $showIndividualView = false;
+    public $individualExamClassSubjectId = null;
+    public $individualExamDetailId = null;
+    public $individualMyclassSectionId = null;
+    public $individualMyclassSubjectId = null;
 
     public function mount()
     {
@@ -67,11 +74,36 @@ class Exam15TeacherMarksEntryComp extends Component
             ->toArray(); // Convert to array for easier handling in Blade
     }
 
+    // Method to handle opening individual view
+    public function openIndividualView($examClassSubjectId, $examDetailId, $myclassSectionId, $myclassSubjectId)
+    {
+        $this->individualExamClassSubjectId = $examClassSubjectId;
+        $this->individualExamDetailId = $examDetailId;
+        $this->individualMyclassSectionId = $myclassSectionId;
+        $this->individualMyclassSubjectId = $myclassSubjectId;
+        $this->showIndividualView = true;
+    }
+
+    // Method to close individual view
+    public function closeIndividualView()
+    {
+        $this->showIndividualView = false;
+        $this->individualExamClassSubjectId = null;
+        $this->individualExamDetailId = null;
+        $this->individualMyclassSectionId = null;
+        $this->individualMyclassSubjectId = null;
+    }
+
     public function render()
     {
         return view('livewire.exam15-teacher-marks-entry-comp', [
             'teachers' => $this->teachers,
-            'answerScripts' => $this->answerScripts
+            'answerScripts' => $this->answerScripts,
+            'showIndividualView' => $this->showIndividualView,
+            'individualExamClassSubjectId' => $this->individualExamClassSubjectId,
+            'individualExamDetailId' => $this->individualExamDetailId,
+            'individualMyclassSectionId' => $this->individualMyclassSectionId,
+            'individualMyclassSubjectId' => $this->individualMyclassSubjectId
         ]);
     }
 }
