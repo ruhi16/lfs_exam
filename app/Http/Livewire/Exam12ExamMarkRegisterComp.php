@@ -14,6 +14,7 @@ use App\Models\SubjectType;
 use App\Models\Exam01Name;
 use App\Models\Exam02Type;
 use App\Models\Exam03Part;
+use App\Models\Exam04Mode;
 use App\Models\Exam06ClassSubject;
 use App\Models\Exam08Grade;
 use App\Models\Session;
@@ -33,6 +34,7 @@ class Exam12ExamMarkRegisterComp extends Component
     public $examNames;
     public $examTypes;
     public $examParts;
+    public $examModes;
     public $grades;
     public $sessions;
     public $schools;
@@ -61,6 +63,7 @@ class Exam12ExamMarkRegisterComp extends Component
         $this->examNames = Exam01Name::orderBy('name')->get();
         $this->examTypes = Exam02Type::orderBy('name')->get();
         $this->examParts = Exam03Part::orderBy('name')->get();
+        $this->examModes = Exam04Mode::orderBy('name')->get();
         $this->grades = Exam08Grade::orderBy('name')->get();
         $this->sessions = Session::orderBy('name')->get();
         $this->schools = School::orderBy('name')->get();
@@ -240,22 +243,22 @@ class Exam12ExamMarkRegisterComp extends Component
             return $item->subject->subject_type_id;
         });
         
-        // Sort by subject_type_id to ensure Summative (usually id 1) comes before Formative (usually id 2)
+        // Create a new collection with explicit ordering
         $sortedGrouped = collect();
         
-        // First add Summative subjects (assuming id 1)
-        if ($grouped->has(1)) {
-            $sortedGrouped[1] = $grouped[1];
+        // Define the priority order: Summative (1) first, then Formative (2)
+        $priorityOrder = [1, 2]; // 1 = Summative, 2 = Formative
+        
+        // Add subjects in priority order
+        foreach ($priorityOrder as $priorityTypeId) {
+            if ($grouped->has($priorityTypeId)) {
+                $sortedGrouped[$priorityTypeId] = $grouped[$priorityTypeId];
+            }
         }
         
-        // Then add Formative subjects (assuming id 2)
-        if ($grouped->has(2)) {
-            $sortedGrouped[2] = $grouped[2];
-        }
-        
-        // Add any other subject types
+        // Add any remaining subject types that aren't in the priority list
         foreach ($grouped as $subjectTypeId => $subjects) {
-            if ($subjectTypeId != 1 && $subjectTypeId != 2) {
+            if (!in_array($subjectTypeId, $priorityOrder)) {
                 $sortedGrouped[$subjectTypeId] = $subjects;
             }
         }
@@ -285,6 +288,166 @@ class Exam12ExamMarkRegisterComp extends Component
             ->first();
             
         return $examClassSubject ? $examClassSubject->id : null;
+    }
+    
+    public function getExamDetailAndClassSubjectId($classId, $subjectId, $examNameId, $examPartId, $details = null)
+    {
+        // If details array is provided (from Blade template), use it to find the exact exam detail
+        if ($details && is_array($details)) {
+            foreach ($details as $detail) {
+                if ($detail->subject_id == $subjectId && $detail->exam_name_id == $examNameId && $detail->exam_part_id == $examPartId) {
+                    // Found the exact exam detail, now get the exam class subject
+                    $examClassSubject = Exam06ClassSubject::where('exam_detail_id', $detail->id)
+                        ->where('myclass_id', $classId)
+                        ->where('subject_id', $subjectId)
+                        ->first();
+                    
+                    if ($examClassSubject) {
+                        return [
+                            'exam_detail_id' => $detail->id,
+                            'exam_class_subject_id' => $examClassSubject->id
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // Fallback method: try to find the exam class subject ID using the relationship
+        $examClassSubject = Exam06ClassSubject::where('myclass_id', $classId)
+            ->where('subject_id', $subjectId)
+            ->first();
+            
+        if (!$examClassSubject) {
+            return ['exam_detail_id' => null, 'exam_class_subject_id' => null];
+        }
+        
+        // Then get the exam detail ID from the exam class subject
+        $examDetailId = $examClassSubject->exam_detail_id;
+        
+        // Verify that this exam detail matches our exam name and part
+        $examDetail = Exam05Detail::find($examDetailId);
+        if (!$examDetail || $examDetail->exam_name_id != $examNameId || $examDetail->exam_part_id != $examPartId) {
+            return ['exam_detail_id' => null, 'exam_class_subject_id' => null];
+        }
+        
+        return [
+            'exam_detail_id' => $examDetailId,
+            'exam_class_subject_id' => $examClassSubject->id
+        ];
+    }
+    
+    public function getStudentMarksData($myclassSectionId, $examNameId, $examPartId, $subjectGroups, $studentsInSection)
+    {
+        // Get the myclass_id from the section
+        $myclassSection = MyclassSection::find($myclassSectionId);
+        $myclassId = $myclassSection ? $myclassSection->myclass_id : null;
+        
+        if (!$myclassId) {
+            return [];
+        }
+        
+        // Pre-load all exam class subjects for this class and subjects
+        $subjectIds = [];
+        foreach ($subjectGroups as $subjectsOfType) {
+            foreach ($subjectsOfType as $classSubject) {
+                $subjectIds[] = $classSubject->subject_id;
+            }
+        }
+        
+        $examClassSubjects = Exam06ClassSubject::where('myclass_id', $myclassId)
+            ->whereIn('subject_id', $subjectIds)
+            ->get()
+            ->keyBy('subject_id');
+        
+        // Pre-load all exam details for this exam name and part
+        $examDetails = Exam05Detail::where('myclass_id', $myclassId)
+            ->where('exam_name_id', $examNameId)
+            ->where('exam_part_id', $examPartId)
+            ->get()
+            ->keyBy('id');
+        
+        // Pre-load all marks entries for this section
+        $studentIds = $studentsInSection->pluck('id')->toArray();
+        $examDetailIds = $examDetails->pluck('id')->toArray();
+        
+        $marksEntries = Exam10MarksEntry::where('myclass_section_id', $myclassSectionId)
+            ->whereIn('exam_detail_id', $examDetailIds)
+            ->whereIn('studentcr_id', $studentIds)
+            ->get()
+            ->groupBy(['studentcr_id', 'exam_detail_id']);
+        
+        // Prepare the marks data array
+        $marksData = [];
+        
+        foreach ($studentsInSection as $student) {
+            $studentId = $student->id;
+            $marksData[$studentId] = [];
+            
+            foreach ($subjectGroups as $subjectTypeId => $subjectsOfType) {
+                foreach ($subjectsOfType as $classSubject) {
+                    $subjectId = $classSubject->subject_id;
+                    
+                    // Find exam_class_subject_id for this combination
+                    $examClassSubject = $examClassSubjects->get($subjectId);
+                    
+                    if ($examClassSubject) {
+                        // Get the exam detail ID from the exam class subject
+                        $examDetailId = $examClassSubject->exam_detail_id;
+                        
+                        // Verify this exam detail matches our exam name and part
+                        $examDetail = $examDetails->get($examDetailId);
+                        if ($examDetail) {
+                            // Get marks entry for this student with the three IDs
+                            $studentEntries = $marksEntries->get($studentId);
+                            $marksEntry = null;
+                            if ($studentEntries && $studentEntries->get($examDetailId)) {
+                                $marksEntry = $studentEntries->get($examDetailId)->first();
+                            }
+                            
+                            if ($marksEntry) {
+                                $marksData[$studentId][$subjectId] = [
+                                    'exam_marks' => $marksEntry->exam_marks,
+                                    'grade_id' => $marksEntry->grade_id,
+                                    'is_absent' => $marksEntry->is_absent,
+                                    'exam_class_subject_id' => $marksEntry->exam_class_subject_id,
+                                    'display_marks' => $marksEntry->isAbsent() ? 'AB' : $marksEntry->getDisplayMarks(),
+                                    'exam_detail_id' => $examDetailId
+                                ];
+                            } else {
+                                $marksData[$studentId][$subjectId] = [
+                                    'exam_marks' => null,
+                                    'grade_id' => null,
+                                    'is_absent' => false,
+                                    'exam_class_subject_id' => $examClassSubject->id,
+                                    'display_marks' => '-',
+                                    'exam_detail_id' => $examDetailId
+                                ];
+                            }
+                        } else {
+                            $marksData[$studentId][$subjectId] = [
+                                'exam_marks' => null,
+                                'grade_id' => null,
+                                'is_absent' => false,
+                                'exam_class_subject_id' => null,
+                                'display_marks' => '-',
+                                'exam_detail_id' => null
+                            ];
+                        }
+                    } else {
+                        $marksData[$studentId][$subjectId] = [
+                            'exam_marks' => null,
+                            'grade_id' => null,
+                            'is_absent' => false,
+                            'exam_class_subject_id' => null,
+                            'display_marks' => '-',
+                            'exam_detail_id' => null
+                        ];
+                    }
+                }
+            }
+        }
+        
+        return $marksData;
     }
     
     public function getMarksDataArray($myclassSectionId)
@@ -339,6 +502,36 @@ class Exam12ExamMarkRegisterComp extends Component
             'section_id' => $myclassSectionId,
             'total_students' => count($marksData),
             'sample_data' => array_slice($marksData, 0, 1)
+        ];
+    }
+    
+    public function debugStudentMarksData($myclassSectionId, $examNameId, $examPartId, $subjectGroups, $studentsInSection)
+    {
+        $marksData = $this->getStudentMarksData($myclassSectionId, $examNameId, $examPartId, $subjectGroups, $studentsInSection);
+        
+        // Get some statistics
+        $totalCells = 0;
+        $filledCells = 0;
+        $absentCells = 0;
+        
+        foreach ($marksData as $studentId => $subjects) {
+            foreach ($subjects as $subjectId => $marks) {
+                $totalCells++;
+                if ($marks['exam_marks'] !== null) {
+                    $filledCells++;
+                }
+                if (isset($marks['is_absent']) && $marks['is_absent']) {
+                    $absentCells++;
+                }
+            }
+        }
+        
+        return [
+            'total_cells' => $totalCells,
+            'filled_cells' => $filledCells,
+            'absent_cells' => $absentCells,
+            'fill_rate' => $totalCells > 0 ? round(($filledCells / $totalCells) * 100, 2) : 0,
+            'sample_student_data' => array_slice($marksData, 0, 1)
         ];
     }
     
@@ -480,6 +673,7 @@ class Exam12ExamMarkRegisterComp extends Component
             'examNames' => $this->examNames,
             'examTypes' => $this->examTypes,
             'examParts' => $this->examParts,
+            'examModes' => $this->examModes,
             'grades' => $this->grades,
             'sessions' => $this->sessions,
             'schools' => $this->schools,

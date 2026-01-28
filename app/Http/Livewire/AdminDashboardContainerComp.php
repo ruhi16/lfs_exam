@@ -143,6 +143,10 @@ class AdminDashboardContainerComp extends Component
                 [
                     'name' => 'Mark Register',
                     'component' => 'marks_entry.mark_register'
+                ],                
+                [
+                    'name' => 'Teacher Entry',
+                    'component' => 'exam.teacher_marks_entry'
                 ],
             ]
         ],

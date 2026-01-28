@@ -25,6 +25,7 @@ class Exam07AnscrDistributionComp extends Component
     public $classes;
     public $sections;
     public $summativeSubjects;
+    public $formativeSubjects;
     public $teachers;
     public $examClassSubjects;
     public $existingDistributions;
@@ -60,7 +61,7 @@ class Exam07AnscrDistributionComp extends Component
         $this->sessions = Session::orderBy('name')->get();
         $this->schools = School::orderBy('name')->get();
         $this->users = User::orderBy('name')->get();
-        $this->teachers = Teacher::with('user')->orderBy('user_id')->get();
+        $this->teachers = Teacher::with('user')->orderBy('id')->get();
         
         // Load existing answer script distributions
         $this->examClassSubjects = Exam06ClassSubject::with([
@@ -160,6 +161,28 @@ class Exam07AnscrDistributionComp extends Component
     {
         return Exam05Detail::where('myclass_id', $classId)
             ->with(['examName', 'examType', 'examPart', 'examMode'])
+            ->orderBy('exam_name_id')
+            ->orderBy('exam_type_id')
+            ->orderBy('exam_part_id')
+            ->get()
+            ->groupBy('exam_name_id');
+    }
+    
+    public function getExamDetailsForClassAndSubjectType($classId, $subjectTypeName)
+    {
+        $query = Exam05Detail::where('myclass_id', $classId);
+        
+        if (strtolower($subjectTypeName) === 'summative') {
+            $query->whereHas('examType', function($q) {
+                $q->where('name', 'like', '%Summative%');
+            });
+        } elseif (strtolower($subjectTypeName) === 'formative') {
+            $query->whereHas('examType', function($q) {
+                $q->where('name', 'like', '%Formative%');
+            });
+        }
+        
+        return $query->with(['examName', 'examType', 'examPart', 'examMode'])
             ->orderBy('exam_name_id')
             ->orderBy('exam_type_id')
             ->orderBy('exam_part_id')
@@ -299,10 +322,19 @@ class Exam07AnscrDistributionComp extends Component
     
     public function render()
     {
+        // Load subjects for the active class
+        $activeClass = $this->classes[$this->activeTab] ?? null;
+        
+        if ($activeClass) {
+            $this->summativeSubjects = $this->getSummativeSubjects($activeClass->id);
+            $this->formativeSubjects = $this->getFormativeSubjects($activeClass->id);
+        }
+        
         return view('livewire.exam07-anscr-distribution-comp', [
             'classes' => $this->classes,
             'sections' => $this->sections,
             'summativeSubjects' => $this->summativeSubjects,
+            'formativeSubjects' => $this->formativeSubjects,
             'teachers' => $this->teachers,
             'examClassSubjects' => $this->examClassSubjects,
             'sessions' => $this->sessions,

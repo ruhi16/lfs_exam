@@ -71,6 +71,13 @@ Route::group(
     function () {
         Route::get('/dashboard', [App\Http\Controllers\AdminController::class, 'dashboard'])
             ->name('adminDash');
+
+        Route::get('/marks-entry/{exam_detail_id}/{myclass_section_id}/{myclass_subject_id}', 
+            [App\Http\Controllers\AdminController::class, 'marksEntry'])
+            ->name('marksEntryOld');
+        
+        Route::get('/marks-entry', [App\Http\Controllers\AdminController::class, 'marksEntry'])
+            ->name('marksEntry');
     }
 );
 

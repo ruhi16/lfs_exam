@@ -221,9 +221,14 @@
                 @elseif($currentComponent === 'marks_entry.marks_entry')
                     @livewire('exam10-exam-marks-entry-comp')
 
+
                 @elseif($currentComponent === 'marks_entry.mark_register')
                     @livewire('exam12-exam-mark-register-comp')
 
+
+                    
+                @elseif($currentComponent === 'exam.teacher_marks_entry')
+                    @livewire('exam15-teacher-marks-entry-comp')
 
 
 

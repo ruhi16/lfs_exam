@@ -59,6 +59,15 @@
                         <div class="border border-gray-200 rounded-lg">
                             <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
                                 <h3 class="text-lg font-medium text-gray-900">Section: {{ $section->section->name ?? 'N/A' }}</h3>
+                                @if(isset($debugInfo))
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        Marks Data: {{ $debugInfo['filled_cells'] }}/{{ $debugInfo['total_cells'] }} cells filled
+                                        ({{ $debugInfo['fill_rate'] }}%)
+                                        @if($debugInfo['absent_cells'] > 0)
+                                            , {{ $debugInfo['absent_cells'] }} absent
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="overflow-x-auto">
@@ -109,151 +118,152 @@
 
                                         <tbody class="bg-white divide-y divide-gray-200">
                                             @foreach($studentsInSection as $student)
-                                                <!-- Main student row -->
-                                                <tr class="hover:bg-gray-50">
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-200"
-                                                        rowspan="{{ (is_array($examDetailsGrouped) ? count($examDetailsGrouped) : 0) + 1 }}">
-                                                        <div class="flex items-center">
-                                                            <div
-                                                                class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                                                <span
-                                                                    class="text-blue-800 font-medium">{{ $student->roll_no ?? 'N/A' }}</span>
-                                                            </div>
-                                                            <div class="ml-4">
-                                                                <div class="font-medium text-gray-900">
-                                                                    {{ $student->studentdb->name ?? 'N/A' }}</div>
-                                                                <div class="text-gray-500 text-xs">Roll: {{ $student->roll_no ?? 'N/A' }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <!-- Empty cells for Exam Details and Marks columns -->
-                                                    <td class="border-r border-gray-200"></td>
-                                                    <td class="border-r border-gray-200"></td>
-                                                    <!-- Subject marks columns -->
-                                                    @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
-                                                        @foreach($subjectsOfType as $classSubject)
-                                                            <td class="px-3 py-3 text-center border border-gray-200 bg-white">
-                                                                <!-- Subject marks will be displayed here -->
-                                                                @php
-                                                                    // Get all exam details for this class to find matching ones for this subject
-                                                                    $classExamDetails = $this->getExamDetailsForClass($activeClass->id);
-                                                                    $subjectMarks = '';
-                                                                    
-                                                                    // Look for exam details that have this subject
-                                                                    foreach($classExamDetails as $examDetails) {
-                                                                        foreach($examDetails as $examDetail) {
-                                                                            if($examDetail->subject_id == $classSubject->subject_id) {
-                                                                                // Found an exam detail for this subject, now get the marks
-                                                                                $existingRecord = $this->getExistingMarksEntry($section->id, $examDetail->id, $student->id);
-                                                                                if($existingRecord) {
-                                                                                    $subjectMarks = $existingRecord->getDisplayMarks();
-                                                                                    break 2; // Break out of both loops
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                @endphp
-                                                                <div class="text-sm font-medium">
-                                                                    @if($subjectMarks !== '')
-                                                                        {{ $subjectMarks }}
-                                                                    @else
-                                                                        <span class="text-gray-400">-</span>
-                                                                    @endif
-                                                                </div>
-                                                            </td>
-                                                        @endforeach
-                                                    @endforeach
-                                                </tr>
-
-                                                <!-- Exam Name rows for this student -->
-                                                @if(is_array($examDetailsGrouped) && count($examDetailsGrouped) > 0)
-                                                    @foreach($examDetailsGrouped as $examNameId => $examPartsGrouped)
-                                                        @php
-                                                            $examName = $examNames->firstWhere('id', $examNameId);
-                                                            $totalExamParts = count($examPartsGrouped);
-                                                        @endphp
-                                                        <!-- Exam Name sub-row with exam parts as sub-rows in next column -->
-                                                        <tr class="bg-blue-50">
-                                                            <td
-                                                                class="px-6 py-2 text-sm font-bold text-blue-800 bg-blue-100 border-b border-blue-200">
-                                                                {{ $examName->name ?? 'Unknown Exam' }}
-                                                            </td>
-                                                            <td class="px-6 py-2 text-sm text-gray-900 bg-blue-100 border-b border-blue-200">
-                                                                <!-- Exam Parts listed in this column -->
-                                                                @foreach($examPartsGrouped as $examPartId => $details)
-                                                                    @php
-                                                                        $examPart = $examParts->firstWhere('id', $examPartId);
-                                                                        $firstDetail = $details[0] ?? null;
-                                                                        $examType = $firstDetail ? $examTypes->firstWhere('id', $firstDetail->exam_type_id) : null;
-                                                                    @endphp
-                                                                    <div class="mb-2 p-2 bg-white rounded border border-gray-200">
-                                                                        <div class="font-medium text-gray-800">
-                                                                            {{ $examPart->name ?? 'Unknown Part' }}
-                                                                        </div>
-                                                                        <div class="text-xs text-gray-500 mb-1">
-                                                                            {{ $examType->name ?? 'Unknown Type' }}
-                                                                        </div>
-                                                                        <!-- Marks for this exam part -->
-                                                                        <div class="text-sm text-gray-600">
-                                                                            <!-- Marks are displayed in subject columns -->
-                                                                        </div>
+                                                    <!-- Main student row -->
+                                                    <tr class="hover:bg-gray-50">
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-200"
+                                                            rowspan="{{ (is_array($examDetailsGrouped) ? collect($examDetailsGrouped)->map(function ($parts) {
+                                                return count($parts); })->sum() : 0) + 1 }}">
+                                                            <div class="flex items-center">
+                                                                <div class="ml-4">
+                                                                    <div class="font-medium text-gray-900">
+                                                                        {{ $student->studentdb->name ?? 'N/A' }}
                                                                     </div>
-                                                                    @if(!$loop->last)
-                                                                        <div class="border-t border-gray-200 my-2"></div>
-                                                                    @endif
-                                                                @endforeach
-                                                            </td>
-                                                            <!-- Subject marks for this exam name row -->
-                                                            @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
-                                                                @foreach($subjectsOfType as $classSubject)
-                                                                    @php
-                                                                        // Find marks for this subject across all exam parts of this exam name
-                                                                        $totalMarks = '';
-                                                                        $hasMarks = false;
-                                                                        $test = null;
-                                                                        foreach ($examPartsGrouped as $examPartId => $details) {
-                                                                            $test = $details;
-                                                                            foreach ($details as $detail) {
-                                                                                if ($detail->subject_id == $classSubject->subject_id) {
-                                                                                    $existingRecord = $this->getExistingMarksEntry($section->id, $detail->id, $student->id);
-                                                                                    if ($existingRecord) {
-                                                                                        $marks = $existingRecord->getDisplayMarks();
-                                                                                        if ($existingRecord->isAbsent()) {
-                                                                                            $marks = 'AB';
-                                                                                        }
-                                                                                        $totalMarks = $marks;
-                                                                                        $hasMarks = true;
-                                                                                        break 2; // Break out of both loops
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    @endphp
-                                                                    <td class="px-3 py-3 text-center border border-gray-200 bg-white">
-                                                                        <div class="text-sm font-medium">
-                                                                            {{ $totalMarks }}
-                                                                        </div>
-                                                                    </td>
-                                                                @endforeach
-                                                            @endforeach
-                                                        </tr>
-                                                    @endforeach
-                                                @else
-                                                    <tr>
-                                                        <td colspan="2" class="px-6 py-4 text-center text-gray-500 border-r border-gray-200">
-                                                            No exam details found for this class
+                                                                    <div class="text-gray-500 text-xs">Roll: {{ $student->roll_no ?? 'N/A' }}
+                                                                    </div>
+                                                                    <div class="text-gray-500 text-xs">(Id: {{ $student->id ?? 'N/A' }})
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </td>
-                                                        <!-- Subject columns for no exam details row -->
+                                                        <!-- Empty cells for Exam Details and Marks columns -->
+                                                        <td class="border-r border-gray-200"></td>
+                                                        <td class="border-r border-gray-200"></td>
+                                                        <!-- Subject marks columns -->
                                                         @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
                                                             @foreach($subjectsOfType as $classSubject)
                                                                 <td class="px-3 py-3 text-center border border-gray-200 bg-white">
-                                                                    <!-- No marks to display -->
+                                                                    <span class="text-gray-400">-</span>
                                                                 </td>
                                                             @endforeach
                                                         @endforeach
                                                     </tr>
-                                                @endif
+
+                                                    <!-- Exam Name rows for this student -->
+                                                    @if(is_array($examDetailsGrouped) && count($examDetailsGrouped) > 0)
+                                                        @foreach($examDetailsGrouped as $examNameId => $examPartsGrouped)
+                                                            @php
+                                                                $examName = $examNames->firstWhere('id', $examNameId);
+                                                                $totalExamParts = count($examPartsGrouped);
+
+                                                                // Get marks data for all students for this exam name and part
+                                                                $firstExamPartId = array_key_first($examPartsGrouped);
+                                                                $marksData = $this->getStudentMarksData($section->id, $examNameId, $firstExamPartId, $subjectGroups, $studentsInSection);
+
+                                                                // Debug information
+                                                                $debugInfo = $this->debugStudentMarksData($section->id, $examNameId, $firstExamPartId, $subjectGroups, $studentsInSection);
+                                                            @endphp
+
+                                                            <!-- For all exams, sub-divide by exam parts -->
+                                                            @foreach($examPartsGrouped as $examPartId => $details)
+                                                                @php
+                                                                    $examPart = $examParts->firstWhere('id', $examPartId);
+                                                                    $firstDetail = $details[0] ?? null;
+                                                                    $examType = $firstDetail ? $examTypes->firstWhere('id', $firstDetail->exam_type_id) : null;
+                                                                    $examMode = $firstDetail ? $examModes->firstWhere('id', $firstDetail->exam_mode_id) : null;
+                                                                @endphp
+                                                                <tr class="bg-blue-50">
+                                                                    @if($loop->first)
+                                                                        <td class="px-6 py-2 text-sm font-bold text-blue-800 bg-blue-100 border-b border-blue-200"
+                                                                            rowspan="{{ $totalExamParts }}">
+                                                                            {{ $examName->name ?? 'Unknown Exam' }}
+                                                                        </td>
+                                                                    @endif
+                                                                    <td class="px-6 py-2 text-sm text-gray-900 bg-blue-100 border-b border-blue-200">
+                                                                        <div class="mb-2 p-2 bg-white rounded border border-gray-200">
+                                                                            <div class="font-medium text-gray-800">
+                                                                                {{ $examPart->name ?? 'Unknown Part' }}
+                                                                            </div>
+                                                                            <div class="text-xs text-gray-500 mb-1">
+                                                                                {{ $examType->name ?? 'Unknown Type' }}
+                                                                            </div>
+                                                                            @if($examMode)
+                                                                                <div class="text-xs text-blue-600 font-medium">
+                                                                                    Mode: {{ $examMode->name }}
+                                                                                </div>
+                                                                            @endif
+                                                                            <!-- Marks for this exam part -->
+                                                                            <div class="text-sm text-gray-600">
+                                                                                <!-- Marks are displayed in subject columns -->
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <!-- Subject marks for this exam part row -->
+                                                                    @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
+                                                                        @foreach($subjectsOfType as $classSubject)
+                                                                            @php
+                                                                                // Get marks for this specific student, subject combination
+                                                                                $studentMarks = $marksData[$student->id] ?? [];
+                                                                                $subjectMarks = $studentMarks[$classSubject->subject_id] ?? [];
+                                                                                $partMarks = $subjectMarks['display_marks'] ?? '-';
+                                                                                $examMarks = $subjectMarks['exam_marks'] ?? null;
+                                                                                $examDetailId = $subjectMarks['exam_detail_id'] ?? null;
+                                                                                $examClassSubjectId = $subjectMarks['exam_class_subject_id'] ?? null;
+
+                                                                                // For display purposes
+                                                                                $hasMarks = $examMarks !== null;
+                                                                                $isAbsent = isset($subjectMarks['is_absent']) && $subjectMarks['is_absent'];
+                                                                            @endphp
+                                                                            <td class="px-3 py-3 text-center border border-gray-200 bg-white">
+                                                                                <div class="text-sm font-medium mb-1">
+                                                                                    {{ $partMarks }}
+                                                                                </div>
+                                                                                <!-- Exam Detail ID (prominent display) -->
+                                                                                @if($examDetailId)
+                                                                                    <div
+                                                                                        class="text-xs font-semibold text-blue-600 bg-blue-50 px-1 py-0.5 rounded mt-1">
+                                                                                        ED: {{ $examDetailId }}
+                                                                                    </div>
+                                                                                @endif
+
+                                                                                <!-- Additional info -->
+                                                                                <div class="text-xs text-gray-500 mt-1">
+                                                                                    @if($hasMarks && !$isAbsent)
+                                                                                        <span class="text-green-600">{{ $examMarks }}</span>
+                                                                                    @elseif($isAbsent)
+                                                                                        <span class="text-red-600 font-semibold">ABSENT</span>
+                                                                                    @else
+                                                                                        <span class="text-gray-400">No marks</span>
+                                                                                    @endif
+                                                                                    @if($examClassSubjectId)
+                                                                                        <br><strong>ECS:</strong> {{ $examClassSubjectId }}
+                                                                                    @endif
+                                                                                    @if($examDetailId && $examClassSubjectId === null)
+                                                                                        <br><span class="text-red-500">ECS not found</span>
+                                                                                    @elseif($examDetailId && $examClassSubjectId)
+                                                                                        <br><span class="text-green-500">Valid ECS</span>
+                                                                                    @endif
+                                                                                </div>
+                                                                            </td>
+                                                                        @endforeach
+                                                                    @endforeach
+                                                                </tr>
+                                                            @endforeach
+                                                        @endforeach
+                                                    @else
+                                                        <tr>
+                                                            <td colspan="2" class="px-6 py-4 text-center text-gray-500 border-r border-gray-200">
+                                                                No exam details found for this class
+                                                            </td>
+                                                            <!-- Subject columns for no exam details row -->
+                                                            @foreach($subjectGroups as $subjectTypeId => $subjectsOfType)
+                                                                @foreach($subjectsOfType as $classSubject)
+                                                                    <td class="px-3 py-3 text-center border border-gray-200 bg-white">
+                                                                        <!-- No marks to display -->
+                                                                    </td>
+                                                                @endforeach
+                                                            @endforeach
+                                                        </tr>
+                                                    @endif
                                             @endforeach
                                         </tbody>
                                     </table>
