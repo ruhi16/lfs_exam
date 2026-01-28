@@ -4,6 +4,46 @@
         <h1 class="text-2xl font-bold text-gray-800">Exam Marks Register</h1>
         <p class="text-gray-600 mt-2">Enter and manage student examination marks by class, section, and subject.</p>
         
+        <!-- Subject Type Filter -->
+        <div class="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-gray-700">Filter by Subject Type</h3>
+                <button wire:click="toggleAllSubjectTypes" 
+                        class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-600">
+                    @if(count($selectedSubjectTypeIds) == $subjectTypes->count())
+                        Deselect All
+                    @else
+                        Select All
+                    @endif
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                @foreach($subjectTypes as $subjectType)
+                    <label class="flex items-center space-x-2 text-sm cursor-pointer">
+                        <input type="checkbox" 
+                               wire:model="selectedSubjectTypeIds" 
+                               value="{{ $subjectType->id }}"
+                               class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        <span class="text-gray-700">{{ $subjectType->name }}</span>
+                    </label>
+                @endforeach
+            </div>
+            @if(!empty($selectedSubjectTypeIds))
+                <div class="mt-2 text-xs text-blue-600 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Showing: 
+                        @foreach($subjectTypes->whereIn('id', $selectedSubjectTypeIds) as $type)
+                            <span class="font-semibold">{{ $type->name }}</span>{{ !$loop->last ? ', ' : '' }}
+                        @endforeach
+                    </span>
+                </div>
+            @else
+                <div class="mt-2 text-xs text-gray-500">Showing all subject types</div>
+            @endif
+        </div>
+        
         <!-- ID Legend -->
         <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
             <div class="font-semibold text-blue-800 mb-2">ID Reference Key:</div>
@@ -79,6 +119,87 @@
                                         @endif
                                     </div>
                                 @endif
+                                
+                                <!-- Exam Detail Matching Debug -->
+                                @if(isset($examDetailDebug))
+                                    <div class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                        <div class="font-semibold text-yellow-800 mb-1">Exam Detail Matching Debug:</div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>Exam Details Found: {{ $examDetailDebug['exam_details_count'] }}</div>
+                                            <div>ECS Records: {{ $examDetailDebug['exam_class_subjects_count'] }}</div>
+                                        </div>
+                                        @if(!empty($examDetailDebug['exam_details']))
+                                            <div class="mt-1 font-medium">Exam Details:</div>
+                                            @foreach($examDetailDebug['exam_details'] as $detail)
+                                                <div class="text-xs">ID:{{ $detail['id'] }} - {{ $detail['exam_name'] }} ({{ $detail['exam_type'] }} - {{ $detail['exam_part'] }})</div>
+                                            @endforeach
+                                        @endif
+                                        @if(!empty($examDetailDebug['mapping_analysis']))
+                                            <div class="mt-1 font-medium">Mapping Analysis (Sample):</div>
+                                            @foreach(array_slice($examDetailDebug['mapping_analysis'], 0, 3) as $analysis)
+                                                <div class="text-xs">
+                                                    ECS:{{ $analysis['exam_class_subject_id'] }} ({{ $analysis['subject_name'] }}) 
+                                                    → ED:{{ $analysis['linked_exam_detail_id'] }} 
+                                                    [Exists: {{ $analysis['exam_detail_exists'] }}]
+                                                </div>
+                                            @endforeach
+                                        @endif
+                                    </div>
+                                @endif
+                                
+                                <!-- Detailed Debug Information -->
+                                @if(isset($detailedDebug))
+                                    <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                                        <div class="font-semibold text-blue-800 mb-1">Detailed Matching Analysis:</div>
+                                        <div class="grid grid-cols-3 gap-2 mb-2">
+                                            <div>Total Exam Details: {{ $detailedDebug['total_exam_details'] }}</div>
+                                            <div>Total ECS Records: {{ $detailedDebug['total_exam_class_subjects'] }}</div>
+                                            <div>Context: Exam Name {{ $detailedDebug['exam_name_id'] }}, Part {{ $detailedDebug['exam_part_id'] }}</div>
+                                        </div>
+                                        
+                                        @if(!empty($detailedDebug['exam_details_list']))
+                                            <div class="font-medium mb-1">Filtered Exam Details (by exam_name_id & exam_part_id):</div>
+                                            <div class="grid grid-cols-4 gap-1 text-[10px] mb-2">
+                                                @foreach($detailedDebug['exam_details_list'] as $detail)
+                                                    <div class="bg-white p-1 border rounded">
+                                                        ID:{{ $detail['id'] }}<br>
+                                                        Type:{{ $detail['exam_type_id'] }}<br>
+                                                        Name:{{ $detail['exam_name_id'] }}<br>
+                                                        Part:{{ $detail['exam_part_id'] }}
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                        
+                                        @if(!empty($detailedDebug['subject_matching']))
+                                            <div class="font-medium mb-1">Subject Matching Results:</div>
+                                            <div class="space-y-1">
+                                                @foreach($detailedDebug['subject_matching'] as $subjectMatch)
+                                                    <div class="bg-white p-2 border rounded text-[10px]">
+                                                        <div class="font-medium text-blue-700">{{ $subjectMatch['subject_name'] }} (ID: {{ $subjectMatch['subject_id'] }})</div>
+                                                        <div>ECS Records: {{ $subjectMatch['ecs_records_count'] }}</div>
+                                                        @if(!empty($subjectMatch['valid_matches']))
+                                                            <div class="mt-1">
+                                                                @foreach($subjectMatch['valid_matches'] as $match)
+                                                                    <div class="{{ $match['valid_in_context'] ? 'text-green-600' : 'text-red-600' }}">
+                                                                        ECS:{{ $match['ecs_id'] }} → ED:{{ $match['exam_detail_id'] }}
+                                                                        @if($match['valid_in_context'])
+                                                                            [✓ Valid in context]
+                                                                        @else
+                                                                            [✗ Not in current filter]
+                                                                        @endif
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
+                                                        @else
+                                                            <div class="text-red-600">No ECS records found</div>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="overflow-x-auto">
@@ -135,9 +256,9 @@
                                                             rowspan="{{ (is_array($examDetailsGrouped) ? collect($examDetailsGrouped)->map(function ($parts) {
                                                 return count($parts); })->sum() : 0) + 1 }}">
                                                             <!-- Student ID Box -->
-                                                            <div class="absolute top-2 right-2 bg-purple-100 border border-purple-300 rounded p-1 text-[9px] font-bold text-purple-800 z-20">
+                                                            {{-- <div class="absolute top-2 right-2 bg-purple-100 border border-purple-300 rounded p-1 text-[9px] font-bold text-purple-800 z-20">
                                                                 SCR: {{ $student->id }}
-                                                            </div>
+                                                            </div> --}}
                                                             <div class="flex items-center pt-8">
                                                                 <div class="ml-4">
                                                                     <div class="font-medium text-gray-900">
@@ -177,6 +298,11 @@
 
                                                                 // Debug information
                                                                 $debugInfo = $this->debugStudentMarksData($section->id, $examNameId, $firstExamPartId, $subjectGroups, $studentsInSection);
+                                                                $examDetailDebug = $this->debugExamDetailMatching($section->id, $examNameId, $firstExamPartId);
+                                                                $detailedDebug = $this->debugDetailedMatching($section->id, $examNameId, $firstExamPartId, $subjectGroups);
+                                                                $cellDebugData = $this->getCellDebugData($section->id, $examNameId, $firstExamPartId);
+                                                                $allExamClassSubjects = $cellDebugData['allExamClassSubjects'];
+                                                                $examDetails = $cellDebugData['examDetails'];
                                                             @endphp
 
                                                             <!-- For all exams, sub-divide by exam parts -->
@@ -231,20 +357,33 @@
                                                                             @endphp
                                                                             <td class="px-3 py-3 text-center border border-gray-200 bg-white relative">
                                                                                 <!-- Four IDs Box -->
-                                                                                <div class="absolute top-1 right-1 bg-yellow-100 border border-yellow-300 rounded p-1 text-[8px] leading-tight z-10">
-                                                                                    <div class="font-bold text-yellow-800">IDs</div>
-                                                                                    <div>SCR: {{ $student->id }}</div>
+                                                                                <div class="absolute top-1 right-1 bg-yellow-100 border border-yellow-300 rounded p-1 text-[12px] leading-tight z-10">
+                                                                                    {{-- <div class="font-bold text-yellow-800">IDs</div> --}}
+                                                                                    {{-- <div>SCR: {{ $student->id }}</div> --}}
                                                                                     <div>ED: {{ $examDetailId ?? 'N/A' }}</div>
                                                                                     <div>MS: {{ $section->id }}</div>
                                                                                     <div>ECS: {{ $examClassSubjectId ?? 'N/A' }}</div>
                                                                                 </div>
+                                                                                
+                                                                                <!-- Cell Debug Info -->
+                                                                                @if($examDetailId && $examClassSubjectId)
+                                                                                    @php
+                                                                                        $ecsRecord = $allExamClassSubjects->firstWhere('id', $examClassSubjectId);
+                                                                                        $edRecord = $examDetails->firstWhere('id', $examDetailId);
+                                                                                    @endphp
+                                                                                    <div class="absolute bottom-1 left-1 bg-blue-100 border border-blue-300 rounded p-1 text-[10px] leading-tight z-10">
+                                                                                        <div class="font-bold text-blue-800">Cell Debug:</div>
+                                                                                        <div>ECS-ED: {{ $ecsRecord->exam_detail_id ?? 'N/A' }}</div>
+                                                                                        <div class="text-green-700">Match: {{ ($ecsRecord && $ecsRecord->exam_detail_id == $examDetailId) ? '✓' : '✗' }}</div>
+                                                                                    </div>
+                                                                                @endif
                                                                                 
                                                                                 <div class="text-sm font-medium mb-1 pt-12">
                                                                                     {{ $partMarks }}
                                                                                 </div>
                                                                                 
                                                                                 <!-- Status indicators -->
-                                                                                <div class="text-xs text-gray-500 mt-1">
+                                                                                {{-- <div class="text-xs text-gray-500 mt-1">
                                                                                     @if($hasMarks && !$isAbsent)
                                                                                         <span class="text-green-600">{{ $examMarks }}</span>
                                                                                     @elseif($isAbsent)
@@ -252,14 +391,14 @@
                                                                                     @elseif($partMarks === 'No ECS')
                                                                                         <span class="text-orange-600 font-semibold">No ECS Config</span>
                                                                                     @endif
-                                                                                </div>
+                                                                                </div> --}}
                                                                                 
                                                                                 <!-- Validation status -->
-                                                                                @if($examDetailId && $examClassSubjectId)
+                                                                                {{-- @if($examDetailId && $examClassSubjectId)
                                                                                     <div class="text-[8px] text-green-600 font-semibold mt-1">✓ Valid</div>
                                                                                 @elseif($examDetailId && !$examClassSubjectId)
                                                                                     <div class="text-[8px] text-red-600 font-semibold mt-1">✗ Invalid</div>
-                                                                                @endif
+                                                                                @endif --}}
                                                                             </td>
                                                                         @endforeach
                                                                     @endforeach
@@ -344,4 +483,13 @@
     <div class="mt-6 text-sm text-gray-500">
         Showing marks register for {{ $classes->count() ?? 0 }} classes
     </div>
+    
+    <!-- Cache Info (Developer tool - can be removed) -->
+    {{--<div class="mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm">
+        <div class="font-medium text-green-800 mb-1">Cache Info</div>
+        <div class="text-xs text-green-600">
+            Cache Keys: {{ count($cache ?? []) }}
+            | Memory: ~{{ number_format(memory_get_peak_usage() / 1024 / 1024, 2) }}MB
+        </div>
+    </div>--}}
 </div>

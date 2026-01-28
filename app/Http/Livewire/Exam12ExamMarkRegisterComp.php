@@ -46,7 +46,18 @@ class Exam12ExamMarkRegisterComp extends Component
     public $editingId = null;
     public $isEditingEnabled = false;
     
+    // Subject type filtering
+    public $selectedSubjectTypeIds = [];  // Default to empty - all shown
+    
+    // Data caching to prevent reloading on every refresh
+    private $cache = [];
+    
     protected $listeners = ['refreshComponent' => '$refresh'];
+    
+    // Query time optimization properties
+    protected $casts = [
+        'selectedSubjectTypeIds' => 'array'
+    ];
     
     public function mount()
     {
@@ -124,14 +135,31 @@ class Exam12ExamMarkRegisterComp extends Component
     
     public function getClassSections($classId)
     {
-        return MyclassSection::where('myclass_id', $classId)
+        // Check cache first
+        $cacheKey = "class_sections_{$classId}";
+        if (isset($this->cache[$cacheKey])) {
+            return $this->cache[$cacheKey];
+        }
+        
+        $sections = MyclassSection::where('myclass_id', $classId)
             ->with(['section'])
             ->orderBy('section_id')
             ->get();
+        
+        // Cache the result
+        $this->cache[$cacheKey] = $sections;
+        
+        return $sections;
     }
     
     public function getStudentsInSection($myclassSectionId)
     {
+        // Check cache first
+        $cacheKey = "students_section_{$myclassSectionId}";
+        if (isset($this->cache[$cacheKey])) {
+            return $this->cache[$cacheKey];
+        }
+        
         // First get the MyclassSection record to get myclass_id and section_id
         $myclassSection = MyclassSection::find($myclassSectionId);
         
@@ -140,11 +168,16 @@ class Exam12ExamMarkRegisterComp extends Component
         }
         
         // Query students using the separate myclass_id and section_id columns
-        return Studentcr::where('myclass_id', $myclassSection->myclass_id)
+        $students = Studentcr::where('myclass_id', $myclassSection->myclass_id)
             ->where('section_id', $myclassSection->section_id)
             ->with(['studentdb', 'myclass', 'section'])
             ->orderBy('roll_no')
             ->get();
+        
+        // Cache the result
+        $this->cache[$cacheKey] = $students;
+        
+        return $students;
     }
     
     public function getClassSubjectsGroupedByType($classId)
@@ -186,6 +219,12 @@ class Exam12ExamMarkRegisterComp extends Component
     
     public function getExamDetailsGroupedByExamNameAndPart($classId)
     {
+        // Check cache first
+        $cacheKey = "exam_details_{$classId}";
+        if (isset($this->cache[$cacheKey])) {
+            return $this->cache[$cacheKey];
+        }
+        
         $examDetails = Exam05Detail::where('myclass_id', $classId)
             ->with(['examName', 'examType', 'examPart', 'examMode'])
             ->orderBy('exam_name_id')
@@ -209,6 +248,9 @@ class Exam12ExamMarkRegisterComp extends Component
             $grouped[$examNameId][$examPartId][] = $detail;
         }
         
+        // Cache the result
+        $this->cache[$cacheKey] = $grouped;
+        
         return $grouped;
     }
     
@@ -226,17 +268,41 @@ class Exam12ExamMarkRegisterComp extends Component
     
     public function getExamClassSubjectsForClass($classId)
     {
-        return MyclassSubject::whereHas('myclass', function($query) use ($classId) {
+        // Check cache first
+        $cacheKey = "class_subjects_{$classId}";
+        if (isset($this->cache[$cacheKey])) {
+            return $this->cache[$cacheKey];
+        }
+        
+        $subjects = MyclassSubject::whereHas('myclass', function($query) use ($classId) {
             $query->where('id', $classId);
         })
         ->with(['subject.subjectType', 'myclass'])
         ->orderBy('subject_id')
         ->get();
+        
+        // Cache the result
+        $this->cache[$cacheKey] = $subjects;
+        
+        return $subjects;
     }
     
     public function getExamClassSubjectsGroupedByType($classId)
     {
+        // Check cache first
+        $cacheKey = "subject_groups_{$classId}_" . md5(serialize($this->selectedSubjectTypeIds));
+        if (isset($this->cache[$cacheKey])) {
+            return $this->cache[$cacheKey];
+        }
+        
         $classSubjects = $this->getExamClassSubjectsForClass($classId);
+        
+        // Apply subject type filter if any selected
+        if (!empty($this->selectedSubjectTypeIds)) {
+            $classSubjects = $classSubjects->filter(function ($item) {
+                return in_array($item->subject->subject_type_id, $this->selectedSubjectTypeIds);
+            });
+        }
         
         // Group by subject type
         $grouped = $classSubjects->groupBy(function ($item) {
@@ -262,6 +328,9 @@ class Exam12ExamMarkRegisterComp extends Component
                 $sortedGrouped[$subjectTypeId] = $subjects;
             }
         }
+        
+        // Cache the result
+        $this->cache[$cacheKey] = $sortedGrouped;
         
         return $sortedGrouped;
     }
@@ -354,12 +423,14 @@ class Exam12ExamMarkRegisterComp extends Component
             }
         }
         
-        // Get all exam class subjects for this class and subjects (without keying)
+        // Get all exam class subjects for this class and subjects
         $allExamClassSubjects = Exam06ClassSubject::where('myclass_id', $myclassId)
             ->whereIn('subject_id', $subjectIds)
             ->get();
         
         // Pre-load all exam details for this exam name and part
+        // IMPORTANT: We need to consider that exam_type_id is also part of the unique combination
+        // But for display purposes, we're showing all exam details for the given exam_name_id and exam_part_id
         $examDetails = Exam05Detail::where('myclass_id', $myclassId)
             ->where('exam_name_id', $examNameId)
             ->where('exam_part_id', $examPartId)
@@ -387,27 +458,26 @@ class Exam12ExamMarkRegisterComp extends Component
                 foreach ($subjectsOfType as $classSubject) {
                     $subjectId = $classSubject->subject_id;
                     
-                    // Find the correct exam_class_subject_id using myclass_id and subject_id
-                    $matchingExamClassSubject = null;
+                    // CORRECTED LOGIC:
+                    // 1. Find all exam_class_subject records for this subject
+                    $subjectEcsRecords = $allExamClassSubjects->filter(function ($ecs) use ($subjectId) {
+                        return $ecs->subject_id == $subjectId;
+                    });
+                    
+                    // 2. For each exam_class_subject, check if its exam_detail_id exists in our filtered exam details
+                    $validEcsRecord = null;
                     $matchingExamDetailId = null;
                     
-                    // Look through all exam details to find one that matches our criteria
-                    // and has a corresponding exam_class_subject
-                    foreach ($examDetails as $examDetailId => $examDetail) {
-                        // Find exam class subject that matches this exam detail and subject
-                        $examClassSubject = $allExamClassSubjects->first(function ($ecs) use ($examDetailId, $subjectId) {
-                            return $ecs->exam_detail_id == $examDetailId && $ecs->subject_id == $subjectId;
-                        });
-                        
-                        if ($examClassSubject) {
-                            $matchingExamClassSubject = $examClassSubject;
-                            $matchingExamDetailId = $examDetailId;
+                    foreach ($subjectEcsRecords as $ecsRecord) {
+                        if ($examDetails->has($ecsRecord->exam_detail_id)) {
+                            $validEcsRecord = $ecsRecord;
+                            $matchingExamDetailId = $ecsRecord->exam_detail_id;
                             break;
                         }
                     }
                     
-                    if ($matchingExamClassSubject && $matchingExamDetailId) {
-                        // Get marks entry for this student with the three IDs
+                    if ($validEcsRecord && $matchingExamDetailId) {
+                        // Get marks entry for this student with the matching exam detail
                         $studentEntries = $marksEntries->get($studentId);
                         $marksEntry = null;
                         if ($studentEntries && $studentEntries->get($matchingExamDetailId)) {
@@ -428,13 +498,13 @@ class Exam12ExamMarkRegisterComp extends Component
                                 'exam_marks' => null,
                                 'grade_id' => null,
                                 'is_absent' => false,
-                                'exam_class_subject_id' => $matchingExamClassSubject->id,
+                                'exam_class_subject_id' => $validEcsRecord->id,
                                 'display_marks' => '-',
                                 'exam_detail_id' => $matchingExamDetailId
                             ];
                         }
                     } else {
-                        // No matching exam class subject found
+                        // No valid exam class subject found for this subject in current context
                         $marksData[$studentId][$subjectId] = [
                             'exam_marks' => null,
                             'grade_id' => null,
@@ -534,6 +604,166 @@ class Exam12ExamMarkRegisterComp extends Component
             'fill_rate' => $totalCells > 0 ? round(($filledCells / $totalCells) * 100, 2) : 0,
             'sample_student_data' => array_slice($marksData, 0, 1)
         ];
+    }
+    
+    // New debug method to verify exam_detail_id correctness
+    public function debugExamDetailMatching($myclassSectionId, $examNameId, $examPartId)
+    {
+        $myclassSection = MyclassSection::find($myclassSectionId);
+        $myclassId = $myclassSection ? $myclassSection->myclass_id : null;
+        
+        if (!$myclassId) {
+            return ['error' => 'Invalid myclass_section_id'];
+        }
+        
+        // Get exam details for this context
+        $examDetails = Exam05Detail::where('myclass_id', $myclassId)
+            ->where('exam_name_id', $examNameId)
+            ->where('exam_part_id', $examPartId)
+            ->with(['examName', 'examType', 'examPart'])
+            ->get();
+            
+        // Get all exam class subjects for this class
+        $allExamClassSubjects = Exam06ClassSubject::where('myclass_id', $myclassId)
+            ->with(['subject'])
+            ->get();
+            
+        $debugInfo = [
+            'myclass_id' => $myclassId,
+            'exam_name_id' => $examNameId,
+            'exam_part_id' => $examPartId,
+            'exam_details_count' => $examDetails->count(),
+            'exam_class_subjects_count' => $allExamClassSubjects->count(),
+            'exam_details' => [],
+            'mapping_analysis' => []
+        ];
+        
+        // Show exam details
+        foreach ($examDetails as $detail) {
+            $debugInfo['exam_details'][] = [
+                'id' => $detail->id,
+                'exam_name' => $detail->examName->name ?? 'N/A',
+                'exam_type' => $detail->examType->name ?? 'N/A',
+                'exam_part' => $detail->examPart->name ?? 'N/A'
+            ];
+        }
+        
+        // Analyze mapping
+        foreach ($allExamClassSubjects as $ecs) {
+            $examDetail = $examDetails->firstWhere('id', $ecs->exam_detail_id);
+            $debugInfo['mapping_analysis'][] = [
+                'exam_class_subject_id' => $ecs->id,
+                'subject_name' => $ecs->subject->name ?? 'N/A',
+                'linked_exam_detail_id' => $ecs->exam_detail_id,
+                'exam_detail_exists' => $examDetail ? 'YES' : 'NO',
+                'matched_context' => $examDetail ? 'YES' : 'NO'
+            ];
+        }
+        
+        return $debugInfo;
+    }
+    
+    // Method to get data for cell debugging
+    public function getCellDebugData($myclassSectionId, $examNameId, $examPartId)
+    {
+        $myclassSection = MyclassSection::find($myclassSectionId);
+        $myclassId = $myclassSection ? $myclassSection->myclass_id : null;
+        
+        if (!$myclassId) {
+            return ['allExamClassSubjects' => collect(), 'examDetails' => collect()];
+        }
+        
+        $allExamClassSubjects = Exam06ClassSubject::where('myclass_id', $myclassId)->get();
+        $examDetails = Exam05Detail::where('myclass_id', $myclassId)
+            ->where('exam_name_id', $examNameId)
+            ->where('exam_part_id', $examPartId)
+            ->get();
+            
+        return [
+            'allExamClassSubjects' => $allExamClassSubjects,
+            'examDetails' => $examDetails
+        ];
+    }
+    
+    // Debug method to show detailed matching information
+    public function debugDetailedMatching($myclassSectionId, $examNameId, $examPartId, $subjectGroups)
+    {
+        $myclassSection = MyclassSection::find($myclassSectionId);
+        $myclassId = $myclassSection ? $myclassSection->myclass_id : null;
+        
+        if (!$myclassId) {
+            return ['error' => 'Invalid myclass_section_id'];
+        }
+        
+        // Get the data we're working with
+        $subjectIds = [];
+        foreach ($subjectGroups as $subjectsOfType) {
+            foreach ($subjectsOfType as $classSubject) {
+                $subjectIds[] = $classSubject->subject_id;
+            }
+        }
+        
+        $allExamClassSubjects = Exam06ClassSubject::where('myclass_id', $myclassId)
+            ->whereIn('subject_id', $subjectIds)
+            ->get();
+            
+        $examDetails = Exam05Detail::where('myclass_id', $myclassId)
+            ->where('exam_name_id', $examNameId)
+            ->where('exam_part_id', $examPartId)
+            ->get()
+            ->keyBy('id');
+            
+        $debugInfo = [
+            'myclass_id' => $myclassId,
+            'exam_name_id' => $examNameId,
+            'exam_part_id' => $examPartId,
+            'total_exam_details' => $examDetails->count(),
+            'total_exam_class_subjects' => $allExamClassSubjects->count(),
+            'exam_details_list' => [],
+            'subject_matching' => []
+        ];
+        
+        // List all exam details
+        foreach ($examDetails as $detail) {
+            $debugInfo['exam_details_list'][] = [
+                'id' => $detail->id,
+                'exam_type_id' => $detail->exam_type_id,
+                'exam_name_id' => $detail->exam_name_id,
+                'exam_part_id' => $detail->exam_part_id
+            ];
+        }
+        
+        // Check matching for each subject
+        foreach ($subjectGroups as $subjectTypeId => $subjectsOfType) {
+            foreach ($subjectsOfType as $classSubject) {
+                $subjectId = $classSubject->subject_id;
+                
+                // Find all ECS records for this subject
+                $subjectEcsRecords = $allExamClassSubjects->filter(function ($ecs) use ($subjectId) {
+                    return $ecs->subject_id == $subjectId;
+                });
+                
+                $validMatches = [];
+                foreach ($subjectEcsRecords as $ecsRecord) {
+                    $hasValidDetail = $examDetails->has($ecsRecord->exam_detail_id);
+                    $validMatches[] = [
+                        'ecs_id' => $ecsRecord->id,
+                        'exam_detail_id' => $ecsRecord->exam_detail_id,
+                        'valid_in_context' => $hasValidDetail,
+                        'detail_exists' => Exam05Detail::find($ecsRecord->exam_detail_id) ? true : false
+                    ];
+                }
+                
+                $debugInfo['subject_matching'][] = [
+                    'subject_id' => $subjectId,
+                    'subject_name' => $classSubject->subject->name ?? 'Unknown',
+                    'ecs_records_count' => $subjectEcsRecords->count(),
+                    'valid_matches' => $validMatches
+                ];
+            }
+        }
+        
+        return $debugInfo;
     }
     
     public function getExistingMarksEntry($myclassSectionId, $examDetailId, $studentcrId)
@@ -712,5 +942,23 @@ class Exam12ExamMarkRegisterComp extends Component
             'schools' => $this->schools,
             'users' => $this->users
         ]);
+    }
+    
+    // Clear cache when subject type filter changes
+    public function updatedSelectedSubjectTypeIds()
+    {
+        $this->cache = [];
+        $this->emit('refreshComponent');
+    }
+    
+    // Toggle all subject types
+    public function toggleAllSubjectTypes()
+    {
+        if (count($this->selectedSubjectTypeIds) == $this->subjectTypes->count()) {
+            $this->selectedSubjectTypeIds = [];
+        } else {
+            $this->selectedSubjectTypeIds = $this->subjectTypes->pluck('id')->toArray();
+        }
+        $this->updatedSelectedSubjectTypeIds();
     }
 }
