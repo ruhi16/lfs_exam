@@ -354,10 +354,10 @@ class Exam12ExamMarkRegisterComp extends Component
             }
         }
         
-        $examClassSubjects = Exam06ClassSubject::where('myclass_id', $myclassId)
+        // Get all exam class subjects for this class and subjects (without keying)
+        $allExamClassSubjects = Exam06ClassSubject::where('myclass_id', $myclassId)
             ->whereIn('subject_id', $subjectIds)
-            ->get()
-            ->keyBy('subject_id');
+            ->get();
         
         // Pre-load all exam details for this exam name and part
         $examDetails = Exam05Detail::where('myclass_id', $myclassId)
@@ -387,59 +387,60 @@ class Exam12ExamMarkRegisterComp extends Component
                 foreach ($subjectsOfType as $classSubject) {
                     $subjectId = $classSubject->subject_id;
                     
-                    // Find exam_class_subject_id for this combination
-                    $examClassSubject = $examClassSubjects->get($subjectId);
+                    // Find the correct exam_class_subject_id using myclass_id and subject_id
+                    $matchingExamClassSubject = null;
+                    $matchingExamDetailId = null;
                     
-                    if ($examClassSubject) {
-                        // Get the exam detail ID from the exam class subject
-                        $examDetailId = $examClassSubject->exam_detail_id;
+                    // Look through all exam details to find one that matches our criteria
+                    // and has a corresponding exam_class_subject
+                    foreach ($examDetails as $examDetailId => $examDetail) {
+                        // Find exam class subject that matches this exam detail and subject
+                        $examClassSubject = $allExamClassSubjects->first(function ($ecs) use ($examDetailId, $subjectId) {
+                            return $ecs->exam_detail_id == $examDetailId && $ecs->subject_id == $subjectId;
+                        });
                         
-                        // Verify this exam detail matches our exam name and part
-                        $examDetail = $examDetails->get($examDetailId);
-                        if ($examDetail) {
-                            // Get marks entry for this student with the three IDs
-                            $studentEntries = $marksEntries->get($studentId);
-                            $marksEntry = null;
-                            if ($studentEntries && $studentEntries->get($examDetailId)) {
-                                $marksEntry = $studentEntries->get($examDetailId)->first();
-                            }
-                            
-                            if ($marksEntry) {
-                                $marksData[$studentId][$subjectId] = [
-                                    'exam_marks' => $marksEntry->exam_marks,
-                                    'grade_id' => $marksEntry->grade_id,
-                                    'is_absent' => $marksEntry->is_absent,
-                                    'exam_class_subject_id' => $marksEntry->exam_class_subject_id,
-                                    'display_marks' => $marksEntry->isAbsent() ? 'AB' : $marksEntry->getDisplayMarks(),
-                                    'exam_detail_id' => $examDetailId
-                                ];
-                            } else {
-                                $marksData[$studentId][$subjectId] = [
-                                    'exam_marks' => null,
-                                    'grade_id' => null,
-                                    'is_absent' => false,
-                                    'exam_class_subject_id' => $examClassSubject->id,
-                                    'display_marks' => '-',
-                                    'exam_detail_id' => $examDetailId
-                                ];
-                            }
+                        if ($examClassSubject) {
+                            $matchingExamClassSubject = $examClassSubject;
+                            $matchingExamDetailId = $examDetailId;
+                            break;
+                        }
+                    }
+                    
+                    if ($matchingExamClassSubject && $matchingExamDetailId) {
+                        // Get marks entry for this student with the three IDs
+                        $studentEntries = $marksEntries->get($studentId);
+                        $marksEntry = null;
+                        if ($studentEntries && $studentEntries->get($matchingExamDetailId)) {
+                            $marksEntry = $studentEntries->get($matchingExamDetailId)->first();
+                        }
+                        
+                        if ($marksEntry) {
+                            $marksData[$studentId][$subjectId] = [
+                                'exam_marks' => $marksEntry->exam_marks,
+                                'grade_id' => $marksEntry->grade_id,
+                                'is_absent' => $marksEntry->is_absent,
+                                'exam_class_subject_id' => $marksEntry->exam_class_subject_id,
+                                'display_marks' => $marksEntry->isAbsent() ? 'AB' : $marksEntry->getDisplayMarks(),
+                                'exam_detail_id' => $matchingExamDetailId
+                            ];
                         } else {
                             $marksData[$studentId][$subjectId] = [
                                 'exam_marks' => null,
                                 'grade_id' => null,
                                 'is_absent' => false,
-                                'exam_class_subject_id' => null,
+                                'exam_class_subject_id' => $matchingExamClassSubject->id,
                                 'display_marks' => '-',
-                                'exam_detail_id' => null
+                                'exam_detail_id' => $matchingExamDetailId
                             ];
                         }
                     } else {
+                        // No matching exam class subject found
                         $marksData[$studentId][$subjectId] = [
                             'exam_marks' => null,
                             'grade_id' => null,
                             'is_absent' => false,
                             'exam_class_subject_id' => null,
-                            'display_marks' => '-',
+                            'display_marks' => 'No ECS',
                             'exam_detail_id' => null
                         ];
                     }
@@ -541,6 +542,38 @@ class Exam12ExamMarkRegisterComp extends Component
             ->where('exam_detail_id', $examDetailId)
             ->where('studentcr_id', $studentcrId)
             ->first();
+    }
+    
+    public function verifyExamClassSubjectRelationship($myclassId, $subjectId, $examDetailId)
+    {
+        // Verify that there's an exam class subject linking these three entities
+        $examClassSubject = Exam06ClassSubject::where('myclass_id', $myclassId)
+            ->where('subject_id', $subjectId)
+            ->where('exam_detail_id', $examDetailId)
+            ->first();
+            
+        return $examClassSubject ? $examClassSubject->id : null;
+    }
+    
+    public function debugExamClassSubjects($myclassId, $subjectIds)
+    {
+        $examClassSubjects = Exam06ClassSubject::where('myclass_id', $myclassId)
+            ->whereIn('subject_id', $subjectIds)
+            ->with(['examDetail.examName', 'examDetail.examType', 'examDetail.examPart', 'subject'])
+            ->get();
+            
+        return $examClassSubjects->map(function ($ecs) {
+            return [
+                'id' => $ecs->id,
+                'myclass_id' => $ecs->myclass_id,
+                'subject_id' => $ecs->subject_id,
+                'subject_name' => $ecs->subject->name ?? 'N/A',
+                'exam_detail_id' => $ecs->exam_detail_id,
+                'exam_name' => $ecs->examDetail->examName->name ?? 'N/A',
+                'exam_type' => $ecs->examDetail->examType->name ?? 'N/A',
+                'exam_part' => $ecs->examDetail->examPart->name ?? 'N/A'
+            ];
+        });
     }
     
     public function getFormDataValue($myclassSectionId, $examDetailId, $studentcrId, $field)

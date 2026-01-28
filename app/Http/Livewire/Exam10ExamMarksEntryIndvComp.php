@@ -31,9 +31,12 @@ class Exam10ExamMarksEntryIndvComp extends Component
     public $subjects = []; // All available subjects for filtering
     public $examNames = []; // All available exam names
     
-    public $selectedSubjectId = null; // Selected subject filter
-    public $selectedExamNameId = null; // Selected exam name filter
-    public $filteredExamClassSubjects = []; // Filtered subjects
+    // Properties for splitting exam_detail_id
+    public $examNameId = null;
+    public $examTypeId = null;
+    public $examPartId = null;
+    public $examModeId = null;
+    public $allExamDetails = []; // All exam details matching the fixed criteria
     
     public $formData = [];
     public $isEditingEnabled = true;
@@ -46,7 +49,20 @@ class Exam10ExamMarksEntryIndvComp extends Component
         $this->myclassSectionId = $myclass_section_id;
         $this->myclassSubjectId = $myclass_subject_id;
         
+        $this->splitExamDetailId();
         $this->loadInitialData();
+    }
+    
+    public function splitExamDetailId()
+    {
+        // Split the exam_detail_id to get exam_name, exam_type, exam_part, and exam_mode
+        $examDetail = Exam05Detail::find($this->examDetailId);
+        if ($examDetail) {
+            $this->examNameId = $examDetail->exam_name_id;
+            $this->examTypeId = $examDetail->exam_type_id;
+            $this->examPartId = $examDetail->exam_part_id;
+            $this->examModeId = $examDetail->exam_mode_id;
+        }
     }
     
     public function loadInitialData()
@@ -78,59 +94,30 @@ class Exam10ExamMarksEntryIndvComp extends Component
         }
         $this->examNames = $uniqueExamDetails;
         
-        // Initially show all subjects
-        $this->filteredExamClassSubjects = $this->examClassSubjects;
+        // Find all exam_details for all existing exam_names with the fixed exam_type, exam_part, and exam_mode
+        $this->allExamDetails = Exam05Detail::where('exam_type_id', $this->examTypeId)
+            ->where('exam_part_id', $this->examPartId)
+            ->where('exam_mode_id', $this->examModeId)
+            ->get();
+        
+        // Filter exam class subjects to only those that match the exam details we found
+        $this->filteredExamClassSubjects = $this->examClassSubjects->filter(function ($examClassSubject) {
+            return $this->allExamDetails->contains('id', $examClassSubject->exam_detail_id);
+        })->values();
                     
-        // Load exam parts from the exam detail (don't use exam_part_id in queries)
-        $this->examParts = collect([
-            [
-                'id' => $this->examDetail->exam_part_id, 
-                'name' => $this->examDetail->examPart->name,
-                'exam_detail_id' => $this->examDetailId  // Store the exam detail ID instead
-            ]
-        ]);
+        // Load exam parts from all matching exam details
+        $this->examParts = $this->allExamDetails->map(function ($detail) {
+            return [
+                'id' => $detail->exam_part_id,
+                'name' => $detail->examPart->name,
+                'exam_detail_id' => $detail->id
+            ];
+        })->unique('id')->values();
         
         $this->loadExistingData();
     }
     
-    public function updatedSelectedSubjectId($subjectId)
-    {
-        $this->applyFilters();
-    }
-    
-    public function updatedSelectedExamNameId($examNameId)
-    {
-        $this->applyFilters();
-    }
-    
-    public function applyFilters()
-    {
-        $filtered = collect($this->examClassSubjects);
-        
-        if ($this->selectedSubjectId) {
-            // Filter exam class subjects by selected subject
-            $filtered = $filtered->filter(function ($examClassSubject) {
-                return $examClassSubject->subject_id == $this->selectedSubjectId;
-            })->values();
-        }
-        
-        if ($this->selectedExamNameId) {
-            // Filter exam class subjects by selected exam name
-            $filtered = $filtered->filter(function ($examClassSubject) {
-                if (is_object($examClassSubject) && $examClassSubject->examDetail) {
-                    return $examClassSubject->examDetail->exam_name_id == $this->selectedExamNameId;
-                } elseif (is_array($examClassSubject) && isset($examClassSubject['examDetail'])) {
-                    return $examClassSubject['examDetail']['exam_name_id'] == $this->selectedExamNameId;
-                }
-                return false;
-            })->values();
-        }
-        
-        $this->filteredExamClassSubjects = $filtered->values();
-        
-        // Reload existing data for the filtered subjects
-        $this->loadExistingData();
-    }
+    // Removed filter methods as filters are no longer needed
     
     public function loadExistingData()
     {
@@ -298,9 +285,12 @@ class Exam10ExamMarksEntryIndvComp extends Component
             'myclassSection' => $this->myclassSection,
             'subjects' => $this->subjects,
             'examNames' => $this->examNames,
-            'selectedSubjectId' => $this->selectedSubjectId,
-            'selectedExamNameId' => $this->selectedExamNameId,
-            'isEditingEnabled' => $this->isEditingEnabled
+            'isEditingEnabled' => $this->isEditingEnabled,
+            'examNameId' => $this->examNameId,
+            'examTypeId' => $this->examTypeId,
+            'examPartId' => $this->examPartId,
+            'examModeId' => $this->examModeId,
+            'allExamDetails' => $this->allExamDetails
         ]);
     }
 }

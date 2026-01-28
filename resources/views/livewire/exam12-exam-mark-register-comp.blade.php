@@ -3,6 +3,17 @@
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800">Exam Marks Register</h1>
         <p class="text-gray-600 mt-2">Enter and manage student examination marks by class, section, and subject.</p>
+        
+        <!-- ID Legend -->
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+            <div class="font-semibold text-blue-800 mb-2">ID Reference Key:</div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div><span class="font-medium text-purple-700">SCR:</span> StudentCR ID</div>
+                <div><span class="font-medium text-blue-700">ED:</span> Exam Detail ID</div>
+                <div><span class="font-medium text-green-700">MS:</span> Myclass Section ID</div>
+                <div><span class="font-medium text-yellow-700">ECS:</span> Exam Class Subject ID</div>
+            </div>
+        </div>
     </div>
 
     <!-- Status Messages -->
@@ -120,17 +131,22 @@
                                             @foreach($studentsInSection as $student)
                                                     <!-- Main student row -->
                                                     <tr class="hover:bg-gray-50">
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-200"
+                                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-200 relative"
                                                             rowspan="{{ (is_array($examDetailsGrouped) ? collect($examDetailsGrouped)->map(function ($parts) {
                                                 return count($parts); })->sum() : 0) + 1 }}">
-                                                            <div class="flex items-center">
+                                                            <!-- Student ID Box -->
+                                                            <div class="absolute top-2 right-2 bg-purple-100 border border-purple-300 rounded p-1 text-[9px] font-bold text-purple-800 z-20">
+                                                                SCR: {{ $student->id }}
+                                                            </div>
+                                                            <div class="flex items-center pt-8">
                                                                 <div class="ml-4">
                                                                     <div class="font-medium text-gray-900">
                                                                         {{ $student->studentdb->name ?? 'N/A' }}
                                                                     </div>
                                                                     <div class="text-gray-500 text-xs">Roll: {{ $student->roll_no ?? 'N/A' }}
                                                                     </div>
-                                                                    <div class="text-gray-500 text-xs">(Id: {{ $student->id ?? 'N/A' }})
+                                                                    <div class="text-gray-500 text-xs mt-1">
+                                                                        <span class="font-semibold">Myclass Section ID:</span> {{ $section->id }}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -213,36 +229,37 @@
                                                                                 $hasMarks = $examMarks !== null;
                                                                                 $isAbsent = isset($subjectMarks['is_absent']) && $subjectMarks['is_absent'];
                                                                             @endphp
-                                                                            <td class="px-3 py-3 text-center border border-gray-200 bg-white">
-                                                                                <div class="text-sm font-medium mb-1">
+                                                                            <td class="px-3 py-3 text-center border border-gray-200 bg-white relative">
+                                                                                <!-- Four IDs Box -->
+                                                                                <div class="absolute top-1 right-1 bg-yellow-100 border border-yellow-300 rounded p-1 text-[8px] leading-tight z-10">
+                                                                                    <div class="font-bold text-yellow-800">IDs</div>
+                                                                                    <div>SCR: {{ $student->id }}</div>
+                                                                                    <div>ED: {{ $examDetailId ?? 'N/A' }}</div>
+                                                                                    <div>MS: {{ $section->id }}</div>
+                                                                                    <div>ECS: {{ $examClassSubjectId ?? 'N/A' }}</div>
+                                                                                </div>
+                                                                                
+                                                                                <div class="text-sm font-medium mb-1 pt-12">
                                                                                     {{ $partMarks }}
                                                                                 </div>
-                                                                                <!-- Exam Detail ID (prominent display) -->
-                                                                                @if($examDetailId)
-                                                                                    <div
-                                                                                        class="text-xs font-semibold text-blue-600 bg-blue-50 px-1 py-0.5 rounded mt-1">
-                                                                                        ED: {{ $examDetailId }}
-                                                                                    </div>
-                                                                                @endif
-
-                                                                                <!-- Additional info -->
+                                                                                
+                                                                                <!-- Status indicators -->
                                                                                 <div class="text-xs text-gray-500 mt-1">
                                                                                     @if($hasMarks && !$isAbsent)
                                                                                         <span class="text-green-600">{{ $examMarks }}</span>
                                                                                     @elseif($isAbsent)
                                                                                         <span class="text-red-600 font-semibold">ABSENT</span>
-                                                                                    @else
-                                                                                        <span class="text-gray-400">No marks</span>
-                                                                                    @endif
-                                                                                    @if($examClassSubjectId)
-                                                                                        <br><strong>ECS:</strong> {{ $examClassSubjectId }}
-                                                                                    @endif
-                                                                                    @if($examDetailId && $examClassSubjectId === null)
-                                                                                        <br><span class="text-red-500">ECS not found</span>
-                                                                                    @elseif($examDetailId && $examClassSubjectId)
-                                                                                        <br><span class="text-green-500">Valid ECS</span>
+                                                                                    @elseif($partMarks === 'No ECS')
+                                                                                        <span class="text-orange-600 font-semibold">No ECS Config</span>
                                                                                     @endif
                                                                                 </div>
+                                                                                
+                                                                                <!-- Validation status -->
+                                                                                @if($examDetailId && $examClassSubjectId)
+                                                                                    <div class="text-[8px] text-green-600 font-semibold mt-1">✓ Valid</div>
+                                                                                @elseif($examDetailId && !$examClassSubjectId)
+                                                                                    <div class="text-[8px] text-red-600 font-semibold mt-1">✗ Invalid</div>
+                                                                                @endif
                                                                             </td>
                                                                         @endforeach
                                                                     @endforeach

@@ -11,43 +11,30 @@
         </p>
     </div>
     
-    <!-- Subject and Exam Name Filters -->
-    <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Exam Detail Information -->
+    <div class="mb-6 bg-blue-50 p-4 rounded-lg">
+        <h3 class="text-lg font-medium text-blue-800 mb-2">Exam Configuration</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div>
-                <label class="text-sm font-medium text-gray-700">Filter by Subject:</label>
-                <select wire:model="selectedSubjectId" 
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">All Subjects</option>
-                    @foreach($subjects as $subject)
-                        <option value="{{ $subject->subject_id }}">{{ $subject->subject->name ?? 'N/A' }}</option>
-                    @endforeach
-                </select>
+                <span class="font-medium text-gray-700">Exam Name:</span>
+                <div class="text-gray-900">{{ $examDetail->examName->name ?? 'N/A' }}</div>
             </div>
             <div>
-                <label class="text-sm font-medium text-gray-700">Filter by Exam Name:</label>
-                <select wire:model="selectedExamNameId" 
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">All Exam Names</option>
-                    @foreach($examNames as $examNameId => $examName)
-                        <option value="{{ $examNameId }}">{{ is_object($examName) ? ($examName->name ?? 'N/A') : ($examName['name'] ?? 'N/A') }}</option>
-                    @endforeach
-                </select>
+                <span class="font-medium text-gray-700">Exam Type:</span>
+                <div class="text-gray-900">{{ $examDetail->examType->name ?? 'N/A' }}</div>
+            </div>
+            <div>
+                <span class="font-medium text-gray-700">Exam Part:</span>
+                <div class="text-gray-900">{{ $examDetail->examPart->name ?? 'N/A' }}</div>
+            </div>
+            <div>
+                <span class="font-medium text-gray-700">Exam Mode:</span>
+                <div class="text-gray-900">{{ $examDetail->examMode->name ?? 'N/A' }}</div>
             </div>
         </div>
-        @if($selectedSubjectId || $selectedExamNameId)
-            <div class="mt-2 text-sm text-gray-600">
-                @if($selectedSubjectId)
-                    <span>Subject: <strong>{{ ($subjects->firstWhere('subject_id', $selectedSubjectId) && isset($subjects->firstWhere('subject_id', $selectedSubjectId)->subject->name)) ? $subjects->firstWhere('subject_id', $selectedSubjectId)->subject->name : 'N/A' }}</strong></span>
-                @endif
-                @if($selectedSubjectId && $selectedExamNameId)
-                    <span class="mx-2">|</span>
-                @endif
-                @if($selectedExamNameId)
-                    <span>Exam: <strong>{{ isset($examNames[$selectedExamNameId]) ? (is_object($examNames[$selectedExamNameId]) ? $examNames[$selectedExamNameId]->name : ($examNames[$selectedExamNameId]['name'] ?? 'N/A')) : 'N/A' }}</strong></span>
-                @endif
-            </div>
-        @endif
+        <div class="mt-3 text-xs text-gray-600">
+            Showing marks for all exam names with the same Exam Type, Part, and Mode as selected.
+        </div>
     </div>
     
     <!-- Status Messages -->
@@ -181,11 +168,11 @@
                 </div>
                 <h3 class="text-lg font-medium text-gray-900 mb-1">No Data Found</h3>
                 <p class="text-gray-500">
-                    @if($selectedSubjectId || $selectedExamNameId)
-                        No exam entries found for the selected filters.
-                    @else
-                        No students or exam subjects are available for this selection.
-                    @endif
+                    No students or exam subjects are available for this selection.
+                    <br>
+                    <span class="text-xs">Based on Exam Type: {{ $examDetail->examType->name ?? 'N/A' }}, 
+                    Exam Part: {{ $examDetail->examPart->name ?? 'N/A' }}, 
+                    Exam Mode: {{ $examDetail->examMode->name ?? 'N/A' }}</span>
                 </p>
             </div>
         @endif
@@ -194,8 +181,10 @@
     <!-- Footer Info -->
     <div class="mt-6 text-sm text-gray-500">
         Showing exam marks entries for {{ $students->count() ?? 0 }} students and {{ count($filteredExamClassSubjects) }} subjects
-        @if($selectedSubjectId || $selectedExamNameId)
-            (filtered by selected criteria)
-        @endif
+        <div class="mt-1 text-xs">
+            Based on Exam Type: {{ $examDetail->examType->name ?? 'N/A' }}, 
+            Exam Part: {{ $examDetail->examPart->name ?? 'N/A' }}, 
+            Exam Mode: {{ $examDetail->examMode->name ?? 'N/A' }}
+        </div>
     </div>
 </div>
