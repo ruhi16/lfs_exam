@@ -118,6 +118,10 @@ class AdminDashboardContainerComp extends Component
                     'component' => 'exam.exam_mode'
                 ],
                 [
+                    'name' => 'Exam Class-Subject',
+                    'component' => 'exam.exam_class_subject'
+                ],
+                [
                     'name' => 'Exam Schedule',
                     'component' => 'exam.exam_schedule'
                 ],

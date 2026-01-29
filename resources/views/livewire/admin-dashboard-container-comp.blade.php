@@ -207,6 +207,11 @@
                     @livewire('exam04-exam-mode-comp')
 
 
+                @elseif($currentComponent === 'exam.exam_class_subject')
+                    @livewire('exam06-exam-myclass-subject-comp')
+
+                @elseif($currentComponent === 'exam.exam_schedule')
+                    @livewire('exam09-exam-schedule-comp')
 
 
 

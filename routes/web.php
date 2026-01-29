@@ -114,6 +114,16 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Test route for Exam12ExamMarkRegisterComp
+Route::get('/test-exam-register', function () {
+    return view('test-exam-register');
+});
+
+// Test route for Home component (main menu)
+Route::get('/test-home-menu', function () {
+    return view('test-home-menu');
+});
+
 // Include test routes
 // require __DIR__ . '/test.php';
 
