@@ -27,22 +27,26 @@
     <!-- Class Tabs -->
     <div class="mb-6 border-b border-gray-200">
         <div class="flex space-x-8" aria-label="Tabs">
-            @foreach($classes as $index => $class)
-                <button wire:click="setActiveTab({{ $index }})"
-                    class="py-4 px-1 border-b-2 font-medium text-sm @if($activeTab === $index) border-blue-500 text-blue-600 @else border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 @endif">
-                    {{ $class->name }}
-                </button>
-            @endforeach
+            @if(isset($classes) && count($classes) > 0)
+                @foreach($classes as $index => $class)
+                    <button wire:click="setActiveTab({{ $index }})"
+                        class="py-4 px-1 border-b-2 font-medium text-sm @if($activeTab === $index) border-blue-500 text-blue-600 @else border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 @endif">
+                        {{ $class->name ?? 'Class ' . ($index + 1) }}
+                    </button>
+                @endforeach
+            @else
+                <div class="py-4 text-gray-500">No classes available</div>
+            @endif
         </div>
     </div>
 
     <!-- Content Area -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        @if(isset($classes[$activeTab]))
+        @if(isset($classes[$activeTab]) && $classes[$activeTab])
             @php
                 $activeClass = $classes[$activeTab];
                 // Get sections for the active class
-                $classSections = $sections->where('myclass_id', $activeClass->id);
+                $classSections = $sections->where('myclass_id', $activeClass->id ?? 0);
             @endphp
 
             @if($classSections->count() > 0)
@@ -78,75 +82,99 @@
                                     // Get students for this section
                                     $studentsInSection = $students->where('myclass_id', $section->myclass_id)
                                         ->where('section_id', $section->section_id);
+                                    
+                                    // Get subjects for the active class ordered by subject_type_id descending
+                                    $classSubjects = \App\Models\MyclassSubject::where('myclass_id', $activeClass->id ?? 0)
+                                        ->with(['subject.subjectType'])
+                                        ->get()
+                                        ->sortByDesc(function($myclassSubject) {
+                                            return $myclassSubject->subject->subject_type_id ?? 0;
+                                        });
                                 @endphp
 
                                 @if($studentsInSection->count() > 0)
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-50">
+                                    <table class="min-w-full divide-y divide-gray-200 border border-gray-200">
+                                        <thead class="bg-gray-100">
                                             <tr>
                                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Roll No
+                                                    Student Details
                                                 </th>
                                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Student Name
+                                                    Exam Name
                                                 </th>
                                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Student ID
+                                                    Exam Part
                                                 </th>
-                                                
-                                                <!-- Dynamic columns based on exam_name count -->
-                                                @foreach($examDetailsGrouped as $examNameId => $examParts)
-                                                    @php
-                                                        $examName = \App\Models\Exam01Name::find($examNameId);
-                                                        // Count total exam details for this exam name across all parts
-                                                        $totalExamsForName = 0;
-                                                        foreach($examParts as $examPartId => $details) {
-                                                            $totalExamsForName += count($details);
-                                                        }
-                                                    @endphp
-                                                    <th colspan="{{ $totalExamsForName }}"
-                                                        class="px-6 py-3 text-center text-xs font-medium text-blue-500 uppercase tracking-wider border-l border-gray-200">
-                                                        {{ $examName->name ?? 'Exam' }} ({{ $totalExamsForName }} exams)
+                                                <!-- Dynamic Subject Columns -->
+                                                @foreach($classSubjects as $myclassSubject)
+                                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-300">
+                                                        <div class="space-y-1">
+                                                            <div>{{ $myclassSubject->subject->name ?? 'Subject' }}</div>
+                                                            <div class="text-xs text-gray-400">
+                                                                Type: {{ $myclassSubject->subject->subjectType->name ?? 'N/A' }}
+                                                            </div>
+                                                        </div>
                                                     </th>
-                                                @endforeach
-                                            </tr>
-                                            
-                                            <!-- Second header row for individual exam details -->
-                                            <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                                                
-                                                @foreach($examDetailsGrouped as $examNameId => $examParts)
-                                                    @foreach($examParts as $examPartId => $details)
-                                                        @foreach($details as $detail)
-                                                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
-                                                                {{ $detail->examPart->name ?? 'Part' }}-{{ $detail->id }}
-                                                            </th>
-                                                        @endforeach
-                                                    @endforeach
                                                 @endforeach
                                             </tr>
                                         </thead>
 
-                                        <tbody class="bg-white divide-y divide-gray-200">
+                                        <tbody class="bg-white divide-y divide-gray-100">
                                             @foreach($studentsInSection as $student)
-                                                <tr class="hover:bg-gray-50">
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        {{ $student->roll_no ?? 'N/A' }}
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                        {{ $student->studentdb->name ?? 'N/A' }}
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        {{ $student->id }}
-                                                    </td>
+                                                @php
+                                                    // Calculate total rows for this student (sum of all exam parts across all exams)
+                                                    $totalRowsForStudent = 0;
+                                                    foreach($examDetailsGrouped as $examParts) {
+                                                        $totalRowsForStudent += count($examParts);
+                                                    }
+                                                    $firstRow = true;
+                                                @endphp
+                                                
+                                                @foreach($examDetailsGrouped as $examNameId => $examParts)
+                                                    @php
+                                                        $examName = \App\Models\Exam01Name::find($examNameId);
+                                                        $examPartsCount = count($examParts);
+                                                        $firstPartInExam = true;
+                                                    @endphp
                                                     
-                                                    <!-- Exam detail cells -->
-                                                    @foreach($examDetailsGrouped as $examNameId => $examParts)
-                                                        @foreach($examParts as $examPartId => $details)
-                                                            @foreach($details as $detail)
+                                                    @foreach($examParts as $examPartId => $details)
+                                                        @php
+                                                            $detail = $details[0];
+                                                        @endphp
+                                                        <tr class="hover:bg-blue-50 transition-colors duration-150">
+                                                            <!-- Student Details Column (only show for first row) -->
+                                                            @if($firstRow)
+                                                                <td rowspan="{{ $totalRowsForStudent }}" class="px-6 py-4 text-sm bg-gray-50 border-r border-gray-200 align-top">
+                                                                    <div class="space-y-1">
+                                                                        <div class="font-semibold text-gray-800">{{ $student->studentdb->name ?? 'N/A' }}</div>
+                                                                        <div class="text-gray-600">Roll: {{ $student->roll_no ?? 'N/A' }}</div>
+                                                                        <div class="text-gray-500 text-xs">ID: {{ $student->id }}</div>
+                                                                    </div>
+                                                                </td>
+                                                                @php $firstRow = false; @endphp
+                                                            @endif
+                                                            
+                                                            <!-- Exam Name Column (only show for first part of each exam) -->
+                                                            @if($firstPartInExam)
+                                                                <td rowspan="{{ $examPartsCount }}" class="px-6 py-4 text-sm font-medium text-blue-600 bg-blue-50 border-r border-gray-200 align-top">
+                                                                    {{ $examName->name ?? 'Exam' }}
+                                                                </td>
+                                                                @php $firstPartInExam = false; @endphp
+                                                            @endif
+                                                            
+                                                            <!-- Exam Part Column -->
+                                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 bg-gray-50 border-r border-gray-200">
+                                                                {{ $detail->examPart->name ?? 'Part' }}
+                                                            </td>
+                                                            
+                                                            <!-- Subject Columns -->
+                                                            @foreach($classSubjects as $myclassSubject)
                                                                 @php
+                                                                    // Find the exam_class_subject for this detail and subject
+                                                                    $examClassSubject = \App\Models\Exam06ClassSubject::where('exam_detail_id', $detail->id)
+                                                                        ->where('subject_id', $myclassSubject->subject_id)
+                                                                        ->first();
+                                                                    
                                                                     $key = "{$section->id}_{$detail->id}_{$student->id}";
                                                                     $marksEntry = $marksData[$key] ?? null;
                                                                     $displayValue = '-';
@@ -159,31 +187,65 @@
                                                                         }
                                                                     }
                                                                 @endphp
-                                                                <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500 text-center border-l border-gray-200 relative">
-                                                                    @if($isEditing)
-                                                                        <div class="flex flex-col items-center space-y-1">
-                                                                            <input type="number" 
-                                                                                   step="0.01" 
-                                                                                   min="0"
-                                                                                   wire:model="marksData.{{$key}}.exam_marks"
-                                                                                   class="w-16 text-center border border-gray-300 rounded px-1 py-0.5 text-xs"
-                                                                                   placeholder="Marks"
-                                                                                   {{ $marksEntry && $marksEntry['is_absent'] ? 'disabled' : '' }}>
-                                                                            <label class="flex items-center text-xs text-gray-500">
-                                                                                <input type="checkbox" 
-                                                                                       wire:model="marksData.{{$key}}.is_absent"
-                                                                                       class="mr-1 h-3 w-3">
-                                                                                AB
-                                                                            </label>
+                                                                <td class="px-4 py-4 bg-white border-l border-gray-200">
+                                                                    @if($examClassSubject)
+                                                                        <div class="space-y-2">
+                                                                            <!-- Exam Detail ID and Class Subject ID -->
+                                                                            <div class="flex flex-wrap gap-1 text-xs">
+                                                                                <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                                                                    Detail: {{ $detail->id }}
+                                                                                </span>
+                                                                                <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                                                                                    Subject: {{ $examClassSubject->id }}
+                                                                                </span>
+                                                                            </div>
+                                                                            
+                                                                            <!-- Marks Input/Display -->
+                                                                            <div class="text-center">
+                                                                                @if($isEditing)
+                                                                                    <div class="space-y-1">
+                                                                                        <input type="number" 
+                                                                                               step="0.01" 
+                                                                                               min="0"
+                                                                                               max="{{ $examClassSubject->full_marks ?? 100 }}"
+                                                                                               wire:model="marksData.{{$key}}.exam_marks"
+                                                                                               class="w-16 text-center border border-blue-300 rounded px-1 py-1 text-sm focus:ring-2 focus:ring-blue-200"
+                                                                                               placeholder="Marks"
+                                                                                               {{ $marksEntry && $marksEntry['is_absent'] ? 'disabled' : '' }}>
+                                                                                        <div class="text-xs text-gray-500">
+                                                                                            /{{ $examClassSubject->full_marks ?? 100 }}
+                                                                                        </div>
+                                                                                        <label class="flex items-center justify-center text-xs text-gray-500">
+                                                                                            <input type="checkbox" 
+                                                                                                   wire:model="marksData.{{$key}}.is_absent"
+                                                                                                   class="mr-1 h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                                                            AB
+                                                                                        </label>
+                                                                                    </div>
+                                                                                @else
+                                                                                    <div>
+                                                                                        <span class="text-lg font-semibold {{ $displayValue !== '-' ? 'text-gray-900' : 'text-gray-400' }}">
+                                                                                            {{ $displayValue }}
+                                                                                        </span>
+                                                                                        @if($displayValue !== '-' && $displayValue !== 'AB')
+                                                                                            <div class="text-xs text-gray-500">
+                                                                                                /{{ $examClassSubject->full_marks ?? 100 }}
+                                                                                            </div>
+                                                                                        @endif
+                                                                                    </div>
+                                                                                @endif
+                                                                            </div>
                                                                         </div>
                                                                     @else
-                                                                        <span class="{{ $displayValue !== '-' ? 'font-medium' : '' }}">{{ $displayValue }}</span>
+                                                                        <div class="text-center text-gray-400 text-sm">
+                                                                            N/A
+                                                                        </div>
                                                                     @endif
                                                                 </td>
                                                             @endforeach
-                                                        @endforeach
+                                                        </tr>
                                                     @endforeach
-                                                </tr>
+                                                @endforeach
                                             @endforeach
                                         </tbody>
                                     </table>
@@ -217,8 +279,8 @@
         <pre class="text-xs text-yellow-700">{{ json_encode([
             'activeTab' => $activeTab,
             'activeClass' => $classes[$activeTab]->name ?? 'None',
-            'sectionCount' => $sections->where('myclass_id', $classes[$activeTab]->id ?? 0)->count(),
-            'studentCount' => $students->where('myclass_id', $classes[$activeTab]->id ?? 0)->count(),
+            'sectionCount' => isset($classes[$activeTab]) ? $sections->where('myclass_id', $classes[$activeTab]->id ?? 0)->count() : 0,
+            'studentCount' => isset($classes[$activeTab]) ? $students->where('myclass_id', $classes[$activeTab]->id ?? 0)->count() : 0,
         ], JSON_PRETTY_PRINT) }}</pre>
     </div>
     @endif

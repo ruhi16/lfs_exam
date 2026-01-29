@@ -28,6 +28,11 @@ class Exam12ExamMarkRegisterComp extends Component
         $this->loadClasses();
         $this->loadSections();
         $this->loadStudents();
+        
+        // Only load exam details if classes exist
+        if (count($this->classes) > 0 && isset($this->classes[0])) {
+            $this->loadExamDetailsForClass($this->classes[0]->id);
+        }
     }
     
     public function loadClasses()
@@ -53,12 +58,16 @@ class Exam12ExamMarkRegisterComp extends Component
             ->orderBy('section_id')
             ->orderBy('roll_no')
             ->get();
+
+        
     }
     
     public function setActiveTab($index)
     {
         $this->activeTab = $index;
-        $this->loadExamDetailsForClass($this->classes[$index]->id);
+        if (isset($this->classes[$index])) {
+            $this->loadExamDetailsForClass($this->classes[$index]->id);
+        }
     }
     
     public function loadExamDetailsForClass($classId)
@@ -112,10 +121,12 @@ class Exam12ExamMarkRegisterComp extends Component
                 ->get();
             
             foreach ($students as $student) {
-                // For each exam detail, check if marks exist
+                // For each exam part, check if marks exist (one detail per part)
                 foreach ($this->examDetailsGrouped as $examNameId => $examParts) {
                     foreach ($examParts as $examPartId => $details) {
-                        foreach ($details as $detail) {
+                        // Get the first (and typically only) detail for this part
+                        $detail = $details[0];
+                        if ($detail) {
                             // Find the exam_class_subject_id for this combination
                             $examClassSubject = Exam06ClassSubject::where('exam_detail_id', $detail->id)
                                 ->where('myclass_id', $classId)
@@ -144,14 +155,47 @@ class Exam12ExamMarkRegisterComp extends Component
     
     public function updateMarks($sectionId, $examDetailId, $studentId)
     {
-        $key = "{$sectionId}_{$examDetailId}_{$studentId}";
+        // Initialize marks data for all exam details in this section
+        $classId = $this->classes[$this->activeTab]->id;
         
-        if (!isset($this->marksData[$key])) {
-            $this->marksData[$key] = [
-                'exam_marks' => null,
-                'is_absent' => false,
-                'exam_class_subject_id' => null
-            ];
+        // Get sections for this class
+        $sections = MyclassSection::where('myclass_id', $classId)
+            ->with('section')
+            ->get();
+        
+        foreach ($sections as $section) {
+            // Get students for this section
+            $students = Studentcr::where('myclass_id', $classId)
+                ->where('section_id', $section->section_id)
+                ->with('studentdb')
+                ->orderBy('roll_no')
+                ->get();
+            
+            foreach ($students as $student) {
+                // For each exam detail, initialize data structure
+                foreach ($this->examDetailsGrouped as $examNameId => $examParts) {
+                    foreach ($examParts as $examPartId => $details) {
+                        // Get the first (and typically only) detail for this part
+                        $detail = $details[0];
+                        if ($detail) {
+                            $key = "{$section->id}_{$detail->id}_{$student->id}";
+                            
+                            if (!isset($this->marksData[$key])) {
+                                // Find the exam_class_subject_id for this combination
+                                $examClassSubject = Exam06ClassSubject::where('exam_detail_id', $detail->id)
+                                    ->where('myclass_id', $classId)
+                                    ->first();
+                                
+                                $this->marksData[$key] = [
+                                    'exam_marks' => null,
+                                    'is_absent' => false,
+                                    'exam_class_subject_id' => $examClassSubject ? $examClassSubject->id : null
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         // Toggle editing mode
@@ -160,110 +204,105 @@ class Exam12ExamMarkRegisterComp extends Component
     
     public function saveMarks($sectionId, $examDetailId, $studentId)
     {
-        $key = "{$sectionId}_{$examDetailId}_{$studentId}";
+        $classId = $this->classes[$this->activeTab]->id;
+        $savedCount = 0;
+        $errorCount = 0;
         
-        if (!isset($this->marksData[$key])) {
-            return;
-        }
+        // Get sections for this class
+        $sections = MyclassSection::where('myclass_id', $classId)
+            ->with('section')
+            ->get();
         
-        $data = $this->marksData[$key];
-        
-        // Validate input
-        if (!$data['is_absent'] && ($data['exam_marks'] === null || $data['exam_marks'] === '')) {
-            session()->flash('error', 'Please enter marks or mark as absent.');
-            return;
-        }
-        
-        // Find exam_class_subject_id
-        $examDetail = Exam05Detail::find($examDetailId);
-        if (!$examDetail) {
-            session()->flash('error', 'Invalid exam detail.');
-            return;
-        }
-        
-        $examClassSubject = Exam06ClassSubject::where('exam_detail_id', $examDetailId)
-            ->where('myclass_id', $this->classes[$this->activeTab]->id)
-            ->first();
+        foreach ($sections as $section) {
+            // Get students for this section
+            $students = Studentcr::where('myclass_id', $classId)
+                ->where('section_id', $section->section_id)
+                ->with('studentdb')
+                ->orderBy('roll_no')
+                ->get();
             
-        if (!$examClassSubject) {
-            session()->flash('error', 'Exam class subject not found.');
-            return;
+            foreach ($students as $student) {
+                // For each exam detail, save the marks
+                foreach ($this->examDetailsGrouped as $examNameId => $examParts) {
+                    foreach ($examParts as $examPartId => $details) {
+                        // Get the first (and typically only) detail for this part
+                        $detail = $details[0];
+                        if ($detail) {
+                            $key = "{$section->id}_{$detail->id}_{$student->id}";
+                            
+                            if (isset($this->marksData[$key])) {
+                                $data = $this->marksData[$key];
+                                
+                                // Validate input
+                                if (!$data['is_absent'] && ($data['exam_marks'] === null || $data['exam_marks'] === '')) {
+                                    $errorCount++;
+                                    continue;
+                                }
+                                
+                                // Find exam_class_subject_id
+                                $examClassSubject = Exam06ClassSubject::where('exam_detail_id', $detail->id)
+                                    ->where('myclass_id', $classId)
+                                    ->first();
+                                
+                                if (!$examClassSubject) {
+                                    $errorCount++;
+                                    continue;
+                                }
+                                
+                                try {
+                                    // Save or update marks entry
+                                    Exam10MarksEntry::updateOrCreate(
+                                        [
+                                            'myclass_section_id' => $section->id,
+                                            'exam_detail_id' => $detail->id,
+                                            'studentcr_id' => $student->id
+                                        ],
+                                        [
+                                            'exam_marks' => $data['is_absent'] ? null : $data['exam_marks'],
+                                            'is_absent' => $data['is_absent'],
+                                            'exam_class_subject_id' => $examClassSubject->id,
+                                            'session_id' => session('session_id') ?? 1, // Default session
+                                            'user_id' => auth()->id() ?? 1, // Current user
+                                            'is_active' => true,
+                                            'status' => 'active'
+                                        ]
+                                    );
+                                    
+                                    $savedCount++;
+                                } catch (\Exception $e) {
+                                    $errorCount++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         
-        try {
-            // Save or update marks entry
-            Exam10MarksEntry::updateOrCreate(
-                [
-                    'myclass_section_id' => $sectionId,
-                    'exam_detail_id' => $examDetailId,
-                    'studentcr_id' => $studentId
-                ],
-                [
-                    'exam_marks' => $data['is_absent'] ? null : $data['exam_marks'],
-                    'is_absent' => $data['is_absent'],
-                    'exam_class_subject_id' => $examClassSubject->id,
-                    'session_id' => session('session_id') ?? 1, // Default session
-                    'user_id' => auth()->id() ?? 1, // Current user
-                    'is_active' => true,
-                    'status' => 'active'
-                ]
-            );
-            
-            session()->flash('message', 'Marks saved successfully.');
-            $this->isEditing = false;
-            
-            // Reload marks data
-            $this->loadMarksData($this->classes[$this->activeTab]->id);
-            
-        } catch (\Exception $e) {
-            session()->flash('error', 'Failed to save marks: ' . $e->getMessage());
+        if ($savedCount > 0) {
+            session()->flash('message', "{$savedCount} marks saved successfully.");
         }
+        
+        if ($errorCount > 0) {
+            session()->flash('error', "{$errorCount} entries had errors and were not saved.");
+        }
+        
+        $this->isEditing = false;
+        
+        // Reload marks data
+        $this->loadMarksData($classId);
     }
     
     public function cancelEdit()
     {
         $this->isEditing = false;
         // Reload original data
-        $this->loadMarksData($this->classes[$this->activeTab]->id);
-    }
-    
-    public function getMarksValue($sectionId, $examDetailId, $studentId)
-    {
-        $key = "{$sectionId}_{$examDetailId}_{$studentId}";
-        return $this->marksData[$key]['exam_marks'] ?? null;
-    }
-    
-    public function getAbsentStatus($sectionId, $examDetailId, $studentId)
-    {
-        $key = "{$sectionId}_{$examDetailId}_{$studentId}";
-        return $this->marksData[$key]['is_absent'] ?? false;
-    }
-    
-    public function setMarksValue($sectionId, $examDetailId, $studentId, $value)
-    {
-        $key = "{$sectionId}_{$examDetailId}_{$studentId}";
-        if (!isset($this->marksData[$key])) {
-            $this->marksData[$key] = ['exam_marks' => null, 'is_absent' => false, 'exam_class_subject_id' => null];
-        }
-        $this->marksData[$key]['exam_marks'] = $value;
-        // If marks are entered, uncheck absent
-        if ($value !== null && $value !== '') {
-            $this->marksData[$key]['is_absent'] = false;
+        if (isset($this->classes[$this->activeTab])) {
+            $this->loadMarksData($this->classes[$this->activeTab]->id);
         }
     }
     
-    public function setAbsentStatus($sectionId, $examDetailId, $studentId, $status)
-    {
-        $key = "{$sectionId}_{$examDetailId}_{$studentId}";
-        if (!isset($this->marksData[$key])) {
-            $this->marksData[$key] = ['exam_marks' => null, 'is_absent' => false, 'exam_class_subject_id' => null];
-        }
-        $this->marksData[$key]['is_absent'] = $status;
-        // If marked absent, clear marks
-        if ($status) {
-            $this->marksData[$key]['exam_marks'] = null;
-        }
-    }
+
     
     public function render()
     {
