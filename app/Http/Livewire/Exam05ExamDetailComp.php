@@ -3,71 +3,92 @@
 namespace App\Http\Livewire;
 
 use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\Exam05Detail;
-use App\Models\Exam01Name;
 use App\Models\Myclass;
+use App\Models\Exam01Name;
+use App\Models\Exam02Type;
 use App\Models\Exam03Part;
 use App\Models\Exam04Mode;
+use App\Models\Exam05Detail;
 use App\Models\Session;
 use App\Models\School;
-use App\Models\User;
-use App\Models\Exam02Type;
 
 class Exam05ExamDetailComp extends Component
 {
-    use WithPagination;
+    public $classes = [];
+    public $examNames = [];
+    public $examTypes = [];
+    public $examParts = [];
+    public $examModes = [];
+    public $sessions = [];
+    public $schools = [];
     
-    // Public properties for search and filtering
+    public $examStructure = [];
+    public $selectedModes = [];
+    public $selectedDetails = [];
+    
+    public $isEditing = false;
     public $search = '';
     public $selectedSession = '';
     public $selectedExamName = '';
     
-    // Modal properties
-    public $isOpen = false;
-    public $isEdit = false;
-    public $examDetailId = null;
+    protected $rules = [
+        'selectedModes.*' => 'nullable|exists:exam04_modes,id',
+    ];
     
-    // Form properties
-    public $session_id, $exam_name_id, $exam_type_id, $exam_part_id, $exam_mode_id;
-    public $selectedClasses = [];
-    public $name, $description, $order_index, $is_optional, $school_id, $user_id, $approved_by;
-    public $is_active = true, $is_finalized = false, $status = '', $remarks = '';
-
-    // Dynamic form arrays
-    public $examParts = [];
-    public $examTypes = [];
-    public $examModes = [];
-    
-    // Properties for enhanced modal
-    public $selectedExamTypes = [];
-    public $selectedExamParts = [];
-    public $selectedExamModes = [];
-
-    protected $paginationTheme = 'tailwind';
-
-    public function render()
+    public function mount()
     {
-        $groupedData = $this->getGroupedExamData();
-        
-        return view('livewire.exam05-exam-detail-comp', [
-            'groupedData' => $groupedData,
-            'sessions' => Session::all(),
-            'examNames' => Exam01Name::all(),
-            'classes' => Myclass::all(),
-            'parts' => Exam03Part::all(),
-            'types' => Exam02Type::all(),
-            'modes' => Exam04Mode::all(),
-            'schools' => School::all(),
-            'users' => User::all()
-        ]);
+        $this->loadData();
+        $this->loadExamStructure();
     }
     
-    public function getGroupedExamData()
+    public function loadData()
     {
-        $query = Exam05Detail::with(['examName', 'myclass', 'examPart', 'examType', 'examMode', 'session']);
+        // Load all required data
+        $this->classes = Myclass::where('is_active', true)->orderBy('id')->get();
+        $this->examNames = Exam01Name::where('is_active', true)->orderBy('id')->get();
+        $this->examTypes = Exam02Type::where('is_active', true)->orderBy('id')->get();
+        $this->examParts = Exam03Part::where('is_active', true)->orderBy('id')->get();
+        $this->examModes = Exam04Mode::where('is_active', true)->orderBy('id')->get();
+        $this->sessions = Session::where('is_active', true)->orderBy('id')->get();
+        $this->schools = School::where('is_active', true)->orderBy('id')->get();
+    }
+    
+    public function loadExamStructure()
+    {
+        // Build the exam structure: exam_name -> exam_type -> exam_part
+        $structure = [];
         
-        // Apply filters
+        foreach ($this->examNames as $examName) {
+            $structure[$examName->id] = [
+                'name' => $examName->name,
+                'types' => []
+            ];
+            
+            foreach ($this->examTypes as $examType) {
+                $structure[$examName->id]['types'][$examType->id] = [
+                    'name' => $examType->name,
+                    'parts' => []
+                ];
+                
+                foreach ($this->examParts as $examPart) {
+                    $structure[$examName->id]['types'][$examType->id]['parts'][$examPart->id] = [
+                        'name' => $examPart->name,
+                        'details' => []
+                    ];
+                }
+            }
+        }
+        
+        $this->examStructure = $structure;
+        
+        // Load existing exam details
+        $this->loadExistingDetails();
+    }
+    
+    public function loadExistingDetails()
+    {
+        $query = Exam05Detail::with(['examName', 'examType', 'examPart', 'examMode', 'myclass']);
+        
         if ($this->selectedSession) {
             $query->where('session_id', $this->selectedSession);
         }
@@ -78,363 +99,163 @@ class Exam05ExamDetailComp extends Component
         
         if ($this->search) {
             $query->where(function($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('description', 'like', '%' . $this->search . '%');
+                $q->whereHas('examName', function($subq) {
+                    $subq->where('name', 'like', '%' . $this->search . '%');
+                })->orWhereHas('examType', function($subq) {
+                    $subq->where('name', 'like', '%' . $this->search . '%');
+                })->orWhereHas('examPart', function($subq) {
+                    $subq->where('name', 'like', '%' . $this->search . '%');
+                })->orWhere('name', 'like', '%' . $this->search . '%');
             });
         }
         
-        // Get all exam details
         $examDetails = $query->get();
         
-        // Group by class first, then by exam_name, then by exam_type
-        $grouped = collect();
+        // Reset selections
+        $this->selectedModes = [];
+        $this->selectedDetails = [];
         
-        // Initialize structure with all classes and exam_names
-        $classes = Myclass::all();
-        $examNames = Exam01Name::all();
+        // Populate existing selections
+        foreach ($examDetails as $detail) {
+            $key = $detail->myclass_id . '_' . $detail->exam_name_id . '_' . $detail->exam_type_id . '_' . $detail->exam_part_id;
+            $this->selectedDetails[$key] = true;
+            $this->selectedModes[$key] = $detail->exam_mode_id;
+        }
+    }
+    
+    public function updated($field, $value)
+    {
+        if (in_array($field, ['search', 'selectedSession', 'selectedExamName'])) {
+            $this->loadExistingDetails();
+        }
+    }
+    
+    public function toggleExamDetail($classId, $examNameId, $examTypeId, $examPartId)
+    {
+        $key = $classId . '_' . $examNameId . '_' . $examTypeId . '_' . $examPartId;
         
-        foreach ($classes as $class) {
-            $grouped->put($class->id, collect());
+        if (isset($this->selectedDetails[$key])) {
+            // Remove selection
+            unset($this->selectedDetails[$key]);
+            unset($this->selectedModes[$key]);
+        } else {
+            // Add selection with default mode
+            $this->selectedDetails[$key] = true;
+            $firstMode = $this->examModes->first();
+            $this->selectedModes[$key] = $firstMode ? $firstMode->id : null;
+        }
+    }
+    
+    public function startEditing()
+    {
+        $this->isEditing = true;
+    }
+    
+    public function cancelEditing()
+    {
+        $this->isEditing = false;
+        $this->loadExistingDetails();
+    }
+    
+    public function saveChanges()
+    {
+        try {
+            // Get existing exam details for current session/filter
+            $existingQuery = Exam05Detail::query();
             
-            foreach ($examNames as $examName) {
-                $grouped[$class->id]->put($examName->id, collect());
+            if ($this->selectedSession) {
+                $existingQuery->where('session_id', $this->selectedSession);
+            }
+            
+            $existingDetails = $existingQuery->get();
+            
+            $createdCount = 0;
+            $updatedCount = 0;
+            $deletedCount = 0;
+            
+            // Handle deletions - remove details that are no longer selected
+            foreach ($existingDetails as $existingDetail) {
+                $key = $existingDetail->myclass_id . '_' . $existingDetail->exam_name_id . '_' . $existingDetail->exam_type_id . '_' . $existingDetail->exam_part_id;
                 
-                // Get exam types for this exam name from the exam details
-                $examTypeIds = $examDetails->where('exam_name_id', $examName->id)->pluck('exam_type_id')->unique();
-                
-                foreach ($examTypeIds as $examTypeId) {
-                    $examType = Exam02Type::find($examTypeId); // Get the exam type object
-                    
-                    if ($examType) { // Only proceed if the exam type exists
-                        $grouped[$class->id][$examName->id]->put($examType->id, collect());
-                        
-                        // Get exam details for this combination
-                        $details = $examDetails->filter(function ($detail) use ($class, $examName, $examType) {
-                            return $detail->myclass_id == $class->id && 
-                                   $detail->exam_name_id == $examName->id && 
-                                   $detail->exam_type_id == $examType->id;
-                        });
-                        
-                        $grouped[$class->id][$examName->id][$examType->id] = $details;
-                    }
+                if (!isset($this->selectedDetails[$key])) {
+                    $existingDetail->delete();
+                    $deletedCount++;
                 }
             }
-        }
-        
-        return $grouped;
-    }
-    
-    public function updatedSelectedSession()
-    {
-        $this->resetPage();
-    }
-    
-    public function updatedSelectedExamName()
-    {
-        $this->resetPage();
-    }
-    
-    public function updatedSearch()
-    {
-        $this->resetPage();
-    }
-    
-    public function create()
-    {
-        $this->resetInputFields();
-        $this->isEdit = false;
-        $this->openModal();
-    }
-    
-    public function edit($id)
-    {
-        $examDetail = Exam05Detail::findOrFail($id);
-        
-        $this->examDetailId = $id;
-        $this->session_id = $examDetail->session_id;
-        $this->exam_name_id = $examDetail->exam_name_id;
-        $this->selectedClasses = [$examDetail->myclass_id]; // Set the selected class for editing
-        $this->selectedExamTypes = [$examDetail->exam_type_id]; // Set the selected exam type for editing
-        $this->selectedExamParts = [$examDetail->exam_type_id => [$examDetail->exam_part_id]]; // Set the selected exam part for editing
-        $this->selectedExamModes = [$examDetail->exam_type_id => [0 => $examDetail->exam_mode_id]]; // Set the selected exam mode for editing
-        $this->name = $examDetail->name;
-        $this->description = $examDetail->description;
-        $this->order_index = $examDetail->order_index;
-        $this->is_optional = $examDetail->is_optional;
-        $this->school_id = $examDetail->school_id;
-        $this->user_id = $examDetail->user_id;
-        $this->approved_by = $examDetail->approved_by;
-        $this->is_active = $examDetail->is_active;
-        $this->is_finalized = $examDetail->is_finalized;
-        $this->status = $examDetail->status;
-        $this->remarks = $examDetail->remarks;
-        
-        $this->isEdit = true;
-        $this->openModal();
-    }
-    
-    public function store()
-    {
-        $this->validate([
-            'session_id' => 'required|exists:sessions,id',
-            'exam_name_id' => 'required|exists:exam01_names,id',
-            'selectedClasses' => 'required|array|min:1',
-            'selectedClasses.*' => 'required|exists:myclasses,id',
-            'name' => 'required|string|max:255',
-            'order_index' => 'nullable|integer',
-            'school_id' => 'nullable|exists:schools,id',
-            'user_id' => 'nullable|exists:users,id',
-            'approved_by' => 'nullable|exists:users,id'
-        ]);
-        
-        $createdCount = 0;
-        
-        // Create exam details for each selected class, exam type, and exam part combination
-        foreach ($this->selectedClasses as $classId) {
-            foreach ($this->selectedExamTypes as $examTypeId) {
-                // Check if exam parts are selected for this exam type
-                if (isset($this->selectedExamParts[$examTypeId]) && is_array($this->selectedExamParts[$examTypeId])) {
-                    // Create entries for each selected exam part with its corresponding exam mode
-                    foreach ($this->selectedExamParts[$examTypeId] as $index => $examPartId) {
-                        // Get the corresponding exam mode for this part (if available)
-                        $examModeId = null;
-                        if (isset($this->selectedExamModes[$examTypeId][$index])) {
-                            $examModeId = $this->selectedExamModes[$examTypeId][$index];
-                        } else {
-                            // If no specific mode is set for this part, skip creating this record
-                            continue;
-                        }
-                        
-                        Exam05Detail::create([
-                            'session_id' => $this->session_id,
-                            'exam_name_id' => $this->exam_name_id,
-                            'myclass_id' => $classId,
-                            'exam_type_id' => $examTypeId,
-                            'exam_part_id' => $examPartId,
-                            'exam_mode_id' => $examModeId,
-                            'name' => $this->name,
-                            'description' => $this->description,
-                            'order_index' => $this->order_index,
-                            'is_optional' => $this->is_optional,
-                            'school_id' => $this->school_id,
-                            'user_id' => $this->user_id,
-                            'approved_by' => $this->approved_by,
-                            'is_active' => $this->is_active,
-                            'is_finalized' => $this->is_finalized,
-                            'status' => $this->status,
-                            'remarks' => $this->remarks
-                        ]);
-                        $createdCount++;
-                    }
-                } else {
-                    // If no specific parts selected for this type, create one entry without part but with exam mode
-                    $examModeId = $this->exam_mode_id ?? null;
-                    Exam05Detail::create([
-                        'session_id' => $this->session_id,
-                        'exam_name_id' => $this->exam_name_id,
+            
+            // Handle creations/updates
+            foreach ($this->selectedDetails as $key => $isSelected) {
+                if (!$isSelected) continue;
+                
+                list($classId, $examNameId, $examTypeId, $examPartId) = explode('_', $key);
+                $modeId = $this->selectedModes[$key] ?? null;
+                
+                if (!$modeId) continue;
+                
+                // Create or update exam detail
+                $examDetail = Exam05Detail::updateOrCreate(
+                    [
                         'myclass_id' => $classId,
+                        'exam_name_id' => $examNameId,
                         'exam_type_id' => $examTypeId,
-                        'exam_part_id' => null, // No specific part selected
-                        'exam_mode_id' => $examModeId,
-                        'name' => $this->name,
-                        'description' => $this->description,
-                        'order_index' => $this->order_index,
-                        'is_optional' => $this->is_optional,
-                        'school_id' => $this->school_id,
-                        'user_id' => $this->user_id,
-                        'approved_by' => $this->approved_by,
-                        'is_active' => $this->is_active,
-                        'is_finalized' => $this->is_finalized,
-                        'status' => $this->status,
-                        'remarks' => $this->remarks
-                    ]);
+                        'exam_part_id' => $examPartId,
+                        'session_id' => $this->selectedSession ?: session('session_id') ?? 1
+                    ],
+                    [
+                        'exam_mode_id' => $modeId,
+                        'name' => $this->generateExamDetailName($classId, $examNameId, $examTypeId, $examPartId),
+                        'is_active' => true,
+                        'is_finalized' => false,
+                        'school_id' => session('school_id') ?? 1
+                    ]
+                );
+                
+                if ($examDetail->wasRecentlyCreated) {
                     $createdCount++;
+                } else {
+                    $updatedCount++;
                 }
             }
+            
+            session()->flash('message', "Saved successfully: $createdCount created, $updatedCount updated, $deletedCount deleted.");
+            $this->isEditing = false;
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to save: ' . $e->getMessage());
         }
-        
-        session()->flash('message', $createdCount . ' exam detail(s) created successfully.');
-        $this->closeModal();
-        $this->resetInputFields();
     }
     
-    public function update()
+    private function generateExamDetailName($classId, $examNameId, $examTypeId, $examPartId)
     {
-        $this->validate([
-            'session_id' => 'required|exists:sessions,id',
-            'exam_name_id' => 'required|exists:exam01_names,id',
-            'selectedClasses' => 'required|array|min:1',
-            'selectedClasses.*' => 'required|exists:myclasses,id',
-            'name' => 'required|string|max:255',
-            'order_index' => 'nullable|integer',
-            'school_id' => 'nullable|exists:schools,id',
-            'user_id' => 'nullable|exists:users,id',
-            'approved_by' => 'nullable|exists:users,id'
+        $class = $this->classes->firstWhere('id', $classId);
+        $examName = $this->examNames->firstWhere('id', $examNameId);
+        $examType = $this->examTypes->firstWhere('id', $examTypeId);
+        $examPart = $this->examParts->firstWhere('id', $examPartId);
+        
+        return sprintf('%s - %s - %s - %s', 
+            $class->name ?? 'Class',
+            $examName->name ?? 'Exam',
+            $examType->name ?? 'Type',
+            $examPart->name ?? 'Part'
+        );
+    }
+    
+    public function render()
+    {
+        return view('livewire.exam05-exam-detail-comp', [
+            'classes' => $this->classes,
+            'examNames' => $this->examNames,
+            'examTypes' => $this->examTypes,
+            'examParts' => $this->examParts,
+            'examModes' => $this->examModes,
+            'examStructure' => $this->examStructure,
+            'selectedModes' => $this->selectedModes,
+            'selectedDetails' => $this->selectedDetails,
+            'isEditing' => $this->isEditing,
+            'search' => $this->search,
+            'selectedSession' => $this->selectedSession,
+            'selectedExamName' => $this->selectedExamName,
+            'sessions' => $this->sessions
         ]);
-        
-        // For update, we'll update the existing record
-        $examDetail = Exam05Detail::findOrFail($this->examDetailId);
-        $examDetail->update([
-            'session_id' => $this->session_id,
-            'exam_name_id' => $this->exam_name_id,
-            'myclass_id' => $this->selectedClasses[0],
-            'exam_type_id' => $this->selectedExamTypes[0] ?? $this->exam_type_id,
-            'exam_part_id' => !empty($this->selectedExamParts) ? ($this->selectedExamParts[$this->selectedExamTypes[0]][0] ?? $this->exam_part_id) : $this->exam_part_id,
-            'exam_mode_id' => !empty($this->selectedExamModes) ? ($this->selectedExamModes[$this->selectedExamTypes[0]][0] ?? $this->exam_mode_id) : $this->exam_mode_id,
-            'name' => $this->name,
-            'description' => $this->description,
-            'order_index' => $this->order_index,
-            'is_optional' => $this->is_optional,
-            'school_id' => $this->school_id,
-            'user_id' => $this->user_id,
-            'approved_by' => $this->approved_by,
-            'is_active' => $this->is_active,
-            'is_finalized' => $this->is_finalized,
-            'status' => $this->status,
-            'remarks' => $this->remarks
-        ]);
-        
-        session()->flash('message', 'Exam detail updated successfully.');
-        $this->closeModal();
-        $this->resetInputFields();
-    }
-    
-    public function delete($id)
-    {
-        Exam05Detail::findOrFail($id)->delete();
-        session()->flash('message', 'Exam detail deleted successfully.');
-    }
-    
-    public function openModal()
-    {
-        $this->isOpen = true;
-    }
-    
-    public function closeModal()
-    {
-        $this->isOpen = false;
-    }
-    
-    public function resetInputFields()
-    {
-        $this->examDetailId = null;
-        $this->session_id = '';
-        $this->exam_name_id = '';
-        $this->selectedClasses = [];
-        $this->selectedExamTypes = [];
-        $this->selectedExamParts = [];
-        $this->selectedExamModes = [];
-        $this->exam_type_id = '';
-        $this->exam_part_id = '';
-        $this->exam_mode_id = '';
-        $this->name = '';
-        $this->description = '';
-        $this->order_index = '';
-        $this->is_optional = false;
-        $this->school_id = '';
-        $this->user_id = '';
-        $this->approved_by = '';
-        $this->is_active = true;
-        $this->is_finalized = false;
-        $this->status = '';
-        $this->remarks = '';
-    }
-    
-    public function submitForm()
-    {
-        if ($this->isEdit) {
-            $this->update();
-        } else {
-            $this->store();
-        }
-    }
-    
-    public function togglePart($examTypeId, $partId)
-    {
-        if (!isset($this->selectedExamParts[$examTypeId])) {
-            $this->selectedExamParts[$examTypeId] = [];
-        }
-        
-        $index = array_search($partId, $this->selectedExamParts[$examTypeId]);
-        
-        if ($index !== false) {
-            // Remove the part and its corresponding mode
-            unset($this->selectedExamParts[$examTypeId][$index]);
-            unset($this->selectedExamModes[$examTypeId][$index]);
-            $this->selectedExamParts[$examTypeId] = array_values($this->selectedExamParts[$examTypeId]);
-            $this->selectedExamModes[$examTypeId] = array_values($this->selectedExamModes[$examTypeId]);
-        } else {
-            // Add the part
-            $this->selectedExamParts[$examTypeId][] = $partId;
-            // Initialize the corresponding mode to null
-            $this->selectedExamModes[$examTypeId][] = null;
-        }
-        
-        // Update the component properties
-        $this->selectedExamParts = $this->selectedExamParts;
-        $this->selectedExamModes = $this->selectedExamModes;
-    }
-    
-    public function removePart($examTypeId, $partId)
-    {
-        if (isset($this->selectedExamParts[$examTypeId])) {
-            $index = array_search($partId, $this->selectedExamParts[$examTypeId]);
-            
-            if ($index !== false) {
-                unset($this->selectedExamParts[$examTypeId][$index]);
-                unset($this->selectedExamModes[$examTypeId][$index]);
-                $this->selectedExamParts[$examTypeId] = array_values($this->selectedExamParts[$examTypeId]);
-                $this->selectedExamModes[$examTypeId] = array_values($this->selectedExamModes[$examTypeId]);
-            }
-        }
-    }
-    
-    private function groupExamDetails()
-    {
-        $groups = [];
-        
-        // Group by exam name, then exam type, then exam parts
-        foreach ($this->examDetails as $detail) {
-            // Skip if detail is null
-            if (!$detail) continue;
-            
-            // Safely get exam name
-            $examName = $detail->examName ? $detail->examName->name : 'Unknown Exam';
-            
-            // Initialize exam name group if not exists
-            if (!isset($groups[$examName])) {
-                $groups[$examName] = [
-                    'exam_name' => $examName,
-                    'exam_types' => []
-                ];
-            }
-            
-            // Safely get exam type
-            $examTypeName = $detail->examType ? $detail->examType->name : 'Unknown Type';
-            
-            // Initialize exam type group if not exists within exam name
-            if (!isset($groups[$examName]['exam_types'][$examTypeName])) {
-                $groups[$examName]['exam_types'][$examTypeName] = [
-                    'exam_type_name' => $examTypeName,
-                    'exam_parts' => []
-                ];
-            }
-            
-            // Safely get exam part
-            $examPartName = $detail->examPart ? $detail->examPart->name : 'Unknown Part';
-            
-            // Initialize exam part group if not exists within exam type
-            if (!isset($groups[$examName]['exam_types'][$examTypeName]['exam_parts'][$examPartName])) {
-                $groups[$examName]['exam_types'][$examTypeName]['exam_parts'][$examPartName] = [
-                    'exam_part_name' => $examPartName,
-                    'details' => []
-                ];
-            }
-            
-            // Add detail to the appropriate part group
-            $groups[$examName]['exam_types'][$examTypeName]['exam_parts'][$examPartName]['details'][] = $detail;
-        }
-        
-        return $groups;
     }
 }

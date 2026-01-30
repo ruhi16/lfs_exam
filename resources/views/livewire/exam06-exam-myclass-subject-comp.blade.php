@@ -1,4 +1,4 @@
-<div class="bg-white rounded-lg shadow overflow-hidden">
+<div class="bg-white rounded-lg shadow overflow-hidden" wire:key="main-container">
     <!-- Tab Navigation -->
     <div class="mb-6 border-b border-gray-200">
         <div class="flex space-x-8" aria-label="Tabs">
@@ -46,7 +46,7 @@
             @if(!empty($examStructure))
                 <!-- Subject Mapping Table -->
                 <div class="overflow-x-auto max-h-screen">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200" wire:key="exam-subject-table">
                         <!-- Three-level Headers -->
                         <thead class="bg-gray-50 sticky top-0 z-10">
                             <!-- Exam Names Level -->
@@ -66,7 +66,7 @@
                                             $typeSpan += count($typeData['parts']);
                                         }
                                     @endphp
-                                    <th colspan="{{ $typeSpan }}" class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-blue-100 border-b">
+                                    <th colspan="{{ $typeSpan }}" class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-blue-100 border-b" wire:key="header-examname-{{ $examNameId }}">
                                         {{ $examNameData['name'] }}
                                     </th>
                                 @endforeach
@@ -79,7 +79,7 @@
                                         @php
                                             $partSpan = count($typeData['parts']);
                                         @endphp
-                                        <th colspan="{{ $partSpan }}" class="px-4 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-blue-50 border-b">
+                                        <th colspan="{{ $partSpan }}" class="px-4 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-blue-50 border-b" wire:key="header-examtype-{{ $examTypeId }}">
                                             {{ $typeData['name'] }}
                                         </th>
                                     @endforeach
@@ -91,7 +91,7 @@
                                 @foreach($examStructure as $examNameId => $examNameData)
                                     @foreach($examNameData['types'] as $examTypeId => $typeData)
                                         @foreach($typeData['parts'] as $examPartId => $partData)
-                                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-25">
+                                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-25" wire:key="header-exampart-{{ $examPartId }}">
                                                 {{ $partData['name'] }}
                                             </th>
                                         @endforeach
@@ -106,7 +106,7 @@
                                     $subjectType = $subject ? $subject->subjectType : null;
                                     $subjectTypeName = $subjectType ? $subjectType->name : 'Unknown';
                                 @endphp
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-gray-50" wire:key="subject-row-{{ $classSubject->id }}">
                                     <td class="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                                         <div class="text-sm font-medium text-gray-900">
                                             {{ $subject ? $subject->name : 'Unnamed Subject' }}
@@ -122,8 +122,8 @@
                                             @foreach($typeData['parts'] as $examPartId => $partData)
                                                 @php
                                                     // Get the exam detail for this specific part
-                                                    $examDetail = $partData['details'][0] ?? null;
-                                                    $examDetailId = $examDetail ? $examDetail->id : null;
+                                                    $examDetail = isset($partData['details'][0]) ? $partData['details'][0] : null;
+                                                    $examDetailId = $examDetail && isset($examDetail->id) ? $examDetail->id : null;
                                                     
                                                     // Check if subject type matches exam type
                                                     $examTypeName = $typeData['name'] ?? '';
@@ -133,10 +133,11 @@
                                                     $key = $examDetailId && $classSubject->subject_id ? $examDetailId . '_' . $classSubject->subject_id : null;
                                                     $isSelected = $examDetailId && $isTypeMatch && $key && isset($selectedSubjects[$key]) && $selectedSubjects[$key]['is_selected'];
                                                 @endphp
-                                                <td class="px-3 py-4 text-center {{ $isTypeMatch ? ($examDetailId ? 'bg-green-50' : 'bg-yellow-50') : 'bg-gray-50' }} border-r border-gray-100">
+                                                <td class="px-3 py-4 text-center {{ $isTypeMatch ? ($examDetailId ? 'bg-green-50' : 'bg-yellow-50') : 'bg-gray-50' }} border-r border-gray-100" wire:key="cell-{{ $classSubject->id }}-{{ $examPartId }}">
                                                     @if($examDetailId && $isTypeMatch && $classSubject->subject_id)
                                                         <input type="checkbox"
                                                                wire:click="toggleSubject({{ $examDetailId }}, {{ $classSubject->subject_id }})"
+                                                               wire:key="checkbox-{{ $examDetailId }}-{{ $classSubject->subject_id }}"
                                                                {{ $isSelected ? 'checked' : '' }}
                                                                {{ !$isEditing ? 'disabled' : '' }}
                                                                class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 {{ !$isEditing ? 'cursor-not-allowed' : '' }}">
