@@ -78,8 +78,21 @@ class Exam06ExamMyclassSubjectComp extends Component
         $this->selectedMappings = [];
 
         foreach ($mappings as $mapping) {
-            $this->selectedMappings[$mapping->subject_id][$mapping->exam_detail_id] = true;
+            $this->selectedMappings[$mapping->subject_id][$mapping->exam_detail_id] = [
+                'checked' => true,
+                'full_marks' => $mapping->full_marks,
+                'pass_marks' => $mapping->pass_marks,
+                'time_in_minutes' => $mapping->time_in_minutes,
+            ];
         }
+    }
+
+    /**
+     * Get mapping data safely
+     */
+    public function getMappingData($subjectId, $examDetailId, $field, $default = null)
+    {
+        return $this->selectedMappings[$subjectId][$examDetailId][$field] ?? $default;
     }
 
     /**
@@ -230,7 +243,10 @@ class Exam06ExamMyclassSubjectComp extends Component
 
         try {
             foreach ($this->selectedMappings as $subjectId => $examDetails) {
-                foreach ($examDetails as $examDetailId => $isSelected) {
+                foreach ($examDetails as $examDetailId => $data) {
+                    // Check if 'checked' key exists and is true
+                    $isSelected = isset($data['checked']) && $data['checked'];
+
                     if ($isSelected) {
                         // Create or Update
                         $examDetail = Exam05Detail::find($examDetailId);
@@ -245,6 +261,9 @@ class Exam06ExamMyclassSubjectComp extends Component
                                     'exam_name_id' => $examDetail->exam_name_id,
                                     'exam_type_id' => $examDetail->exam_type_id,
                                     'exam_part_id' => $examDetail->exam_part_id,
+                                    'full_marks' => $data['full_marks'] ?? null,
+                                    'pass_marks' => $data['pass_marks'] ?? null,
+                                    'time_in_minutes' => $data['time_in_minutes'] ?? null,
                                     'is_active' => true,
                                 ]
                             );

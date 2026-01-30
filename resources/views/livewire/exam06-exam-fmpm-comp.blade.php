@@ -249,44 +249,9 @@
                                                                 </div>
                                                             </div>
                                                         @else
-                                                            <!-- New Record - Show Create Form -->
-                                                            <div class="space-y-2">
-                                                                <div class="flex flex-col space-y-1">
-                                                                    <input 
-                                                                        type="number" 
-                                                                        wire:model="formData.{{ $cellKey }}.full_marks" 
-                                                                        value="{{ $this->getFormDataValue($activeClass->id, $classSubject->subject_id, $examDetail->id, 'full_marks') }}"
-                                                                        class="w-16 px-1 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-center" 
-                                                                        placeholder="FM"
-                                                                        min="0"
-                                                                        @if(!$isEditingEnabled) disabled @endif
-                                                                    >
-                                                                    <input 
-                                                                        type="number" 
-                                                                        wire:model="formData.{{ $cellKey }}.pass_marks" 
-                                                                        value="{{ $this->getFormDataValue($activeClass->id, $classSubject->subject_id, $examDetail->id, 'pass_marks') }}"
-                                                                        class="w-16 px-1 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-center" 
-                                                                        placeholder="PM"
-                                                                        min="0"
-                                                                        @if(!$isEditingEnabled) disabled @endif
-                                                                    >
-                                                                    <input 
-                                                                        type="number" 
-                                                                        wire:model="formData.{{ $cellKey }}.time_in_minutes" 
-                                                                        value="{{ $this->getFormDataValue($activeClass->id, $classSubject->subject_id, $examDetail->id, 'time_in_minutes') }}"
-                                                                        class="w-16 px-1 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-center" 
-                                                                        placeholder="Min"
-                                                                        min="0"
-                                                                        @if(!$isEditingEnabled) disabled @endif
-                                                                    >
-                                                                </div>
-                                                                <button 
-                                                                    wire:click="saveRecord({{ $activeClass->id }}, {{ $classSubject->subject_id }}, {{ $examDetail->id }})"
-                                                                    class="w-full px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                                                                    @if(empty($formData[$cellKey]['full_marks']) || empty($formData[$cellKey]['pass_marks']) || !$isEditingEnabled) disabled @endif
-                                                                >
-                                                                    +
-                                                                </button>
+                                                            <!-- No Record - Show Placeholder -->
+                                                            <div class="h-full flex items-center justify-center">
+                                                                <span class="text-xs text-gray-300">-</span>
                                                             </div>
                                                         @endif
                                                     </td>

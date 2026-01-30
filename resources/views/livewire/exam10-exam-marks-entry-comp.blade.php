@@ -40,7 +40,7 @@
                 </button>
                 <button 
                     wire:click="toggleEditEnable"
-                    class="px-4 py-2 text-sm font-medium text-white bg-@if($isEditingEnabled) red @else indigo @endif-600 border border-@if($isEditingEnabled) red @else indigo @endif-600 rounded-md hover:bg-@if($isEditingEnabled) red @else indigo @endif-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-@if($isEditingEnabled) red @else indigo @endif-500 transition-colors duration-200"
+                    class="px-4 py-2 text-sm font-medium text-white {{ $isEditingEnabled ? 'bg-red-600 border-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-indigo-600 border-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500' }} border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200"
                 >
                     @if($isEditingEnabled) Disable @else Enable @endif Edit
                 </button>
@@ -48,7 +48,7 @@
         </div>
     </div>
     
-    <!-- Exam Name and Exam Type Filters -->
+    <!-- Exam Name, Exam Type and Subject Filters -->
     <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-@if($isValidationPassed) green-200 @else red-200 @endif">
         <div class="flex space-x-4">
             <div class="flex-1">
@@ -78,18 +78,34 @@
                     @endforeach
                 </select>
             </div>
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Subject @if($selectedExamTypeId && !$selectedSubjectId)<span class="text-red-500">*</span>@endif</label>
+                <select 
+                    wire:model="selectedSubjectId"
+                    wire:change="setSelectedSubject($event.target.value)"
+                    class="w-full px-3 py-2 border @if($selectedExamTypeId && !$selectedSubjectId) border-red-300 @else border-@if($selectedSubjectId) green-300 @else gray-300 @endif @endif rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @if(!$selectedExamTypeId) opacity-50 cursor-not-allowed @endif"
+                    @if(!$selectedExamTypeId) disabled @endif
+                >
+                    <option value="">-- Select Subject --</option>
+                    <option value="all">-- All Subjects --</option>
+                    @foreach($filteredSubjects as $subject)
+                        <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
         
         @if(!$isValidationPassed)
-            <div class="mt-2 text-sm @if(!$selectedExamNameId) text-red-600 @else @if(!$selectedExamTypeId) text-yellow-600 @endif @endif">
+            <div class="mt-2 text-sm @if(!$selectedExamNameId) text-red-600 @else @if(!$selectedExamTypeId) text-yellow-600 @else text-yellow-600 @endif @endif">
                 @if(!$selectedExamNameId)
                     <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
                     Please select an exam name to enable exam type selection.
-                @else
-                    @if(!$selectedExamTypeId)
-                        <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                        Please select an exam type to enable student selection and marks entry.
-                    @endif
+                @elseif(!$selectedExamTypeId)
+                    <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                    Please select an exam type to enable subject selection.
+                @elseif(!$selectedSubjectId)
+                    <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                    Please select a subject to enable student selection and marks entry.
                 @endif
             </div>
         @else
@@ -149,6 +165,15 @@
                                                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
                                                             {{ $examClassSubject->subject->name ?? 'N/A' }}<br>
                                                             <span class="text-[10px] text-gray-600">{{ $examClassSubject->examDetail->examName->name ?? 'N/A' }} - {{ $examClassSubject->examDetail->examType->name ?? 'N/A' }}</span>
+                                                            <div class="mt-2">
+                                                                <button
+                                                                    wire:click="saveAllEntriesForSubject({{ $section->id }}, {{ $examClassSubject->id }})"
+                                                                    class="px-2 py-1 text-xs font-medium text-white bg-purple-600 border border-purple-600 rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 @if(!$isEditingEnabled || !$isValidationPassed) opacity-50 cursor-not-allowed @endif"
+                                                                    @if(!$isEditingEnabled || !$isValidationPassed) disabled @endif
+                                                                >
+                                                                    Save Subject
+                                                                </button>
+                                                            </div>
                                                         </th>
                                                     @endforeach
                                                 </tr>

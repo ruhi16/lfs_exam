@@ -156,21 +156,56 @@
                                                     // Check if subject type matches exam type
                                                     $examTypeName = $typeData['name'] ?? '';
                                                     $isTypeMatch = (strtolower(trim($subjectTypeName)) === strtolower(trim($examTypeName)));
+                                                    
+                                                    // Determine background color based on Subject Type and Exam Name combination
+                                                    $colorHash = crc32($subjectTypeName . $examNameData['name']);
+                                                    $colors = [
+                                                        'bg-red-50', 'bg-orange-50', 'bg-amber-50', 'bg-yellow-50', 'bg-lime-50',
+                                                        'bg-green-50', 'bg-emerald-50', 'bg-teal-50', 'bg-cyan-50', 'bg-sky-50',
+                                                        'bg-blue-50', 'bg-indigo-50', 'bg-violet-50', 'bg-purple-50', 'bg-fuchsia-50',
+                                                        'bg-pink-50', 'bg-rose-50'
+                                                    ];
+                                                    $cellBgColor = $colors[abs($colorHash) % count($colors)];
                                                 @endphp
-                                                <td class="px-3 py-4 text-center border-r border-gray-100" wire:key="cell-{{ $classSubject->id }}-{{ $examPartId }}">
+                                                <td class="px-3 py-4 text-center border-r border-gray-100 {{ $cellBgColor }}" wire:key="cell-{{ $classSubject->id }}-{{ $examPartId }}">
                                                     @if($examDetailId)
                                                         @if($isEditing)
-                                                            <div class="flex flex-col items-center">
-                                                                <input type="checkbox" 
-                                                                       wire:model.defer="selectedMappings.{{ $classSubject->subject_id }}.{{ $examDetailId }}"
-                                                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 h-5 w-5 cursor-pointer">
-                                                                @if(!$isTypeMatch)
-                                                                    <span class="text-[10px] text-yellow-600 mt-1" title="Subject Type mismatch">⚠️</span>
-                                                                @endif
+                                                            <div class="flex flex-col items-center space-y-2 p-2 rounded-lg bg-white/50">
+                                                                <div class="flex items-center space-x-2">
+                                                                    <input type="checkbox" 
+                                                                           wire:model.defer="selectedMappings.{{ $classSubject->subject_id }}.{{ $examDetailId }}.checked"
+                                                                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 h-5 w-5 cursor-pointer">
+                                                                    @if(!$isTypeMatch)
+                                                                        <span class="text-[10px] text-yellow-600" title="Subject Type mismatch">⚠️</span>
+                                                                    @endif
+                                                                </div>
+                                                                
+                                                                <div x-data="{ checked: @entangle('selectedMappings.'.$classSubject->subject_id.'.'.$examDetailId.'.checked').defer }" 
+                                                                     x-show="checked" 
+                                                                     class="flex flex-col space-y-1 w-full">
+                                                                    <input type="number" placeholder="Full Marks" 
+                                                                           wire:model.defer="selectedMappings.{{ $classSubject->subject_id }}.{{ $examDetailId }}.full_marks"
+                                                                           class="text-xs w-20 px-1 py-0.5 border rounded border-gray-300 focus:ring-1 focus:ring-blue-500">
+                                                                           
+                                                                    <input type="number" placeholder="Pass Marks" 
+                                                                           wire:model.defer="selectedMappings.{{ $classSubject->subject_id }}.{{ $examDetailId }}.pass_marks"
+                                                                           class="text-xs w-20 px-1 py-0.5 border rounded border-gray-300 focus:ring-1 focus:ring-blue-500">
+                                                                           
+                                                                    <input type="number" placeholder="Time (min)" 
+                                                                           wire:model.defer="selectedMappings.{{ $classSubject->subject_id }}.{{ $examDetailId }}.time_in_minutes"
+                                                                           class="text-xs w-20 px-1 py-0.5 border rounded border-gray-300 focus:ring-1 focus:ring-blue-500">
+                                                                </div>
                                                             </div>
                                                         @else
-                                                            @if(isset($selectedMappings[$classSubject->subject_id][$examDetailId]) && $selectedMappings[$classSubject->subject_id][$examDetailId])
-                                                                <div class="text-green-600 font-bold text-lg">✓</div>
+                                                            @if(isset($selectedMappings[$classSubject->subject_id][$examDetailId]['checked']) && $selectedMappings[$classSubject->subject_id][$examDetailId]['checked'])
+                                                                <div class="flex flex-col items-center">
+                                                                    <div class="text-green-600 font-bold text-lg">✓</div>
+                                                                    <div class="text-[10px] text-gray-600 space-y-0.5 mt-1 bg-white/80 p-1 rounded">
+                                                                        <div>FM: {{ $selectedMappings[$classSubject->subject_id][$examDetailId]['full_marks'] ?? '-' }}</div>
+                                                                        <div>PM: {{ $selectedMappings[$classSubject->subject_id][$examDetailId]['pass_marks'] ?? '-' }}</div>
+                                                                        <div>Time: {{ $selectedMappings[$classSubject->subject_id][$examDetailId]['time_in_minutes'] ?? '-' }}</div>
+                                                                    </div>
+                                                                </div>
                                                             @else
                                                                 <span class="text-gray-200">-</span>
                                                             @endif
