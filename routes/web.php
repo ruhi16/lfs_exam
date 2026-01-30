@@ -139,11 +139,6 @@ Route::get('/test-simple-component', function () {
     return view('test-simple-component');
 });
 
-// Exam Detail Component Test Route
-Route::get('/test-exam-detail', function () {
-    return view('test-exam-detail');
-});
-
 // Include test routes
 // require __DIR__ . '/test.php';
 

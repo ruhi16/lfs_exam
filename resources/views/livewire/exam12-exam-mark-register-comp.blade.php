@@ -115,7 +115,10 @@
                                                 @endphp
                                                 
                                                 @foreach($examParts as $examPartId => $details)
-                                                    @php $detail = $details[0]; @endphp
+                                                    @php 
+                                                        $detail = $details[0]; 
+                                                        $baseDetail = $detail;
+                                                    @endphp
                                                     <tr class="hover:bg-gray-50">
                                                         <!-- Student Column -->
                                                         @if($isFirstStudentRow)
@@ -143,8 +146,15 @@
                                                         @foreach($classSubjects as $ms)
                                                             @php
                                                                 $subjectId = $ms->subject_id;
+                                                                $selectedDetail = null;
+                                                                foreach($details as $d){
+                                                                    if(isset($examClassSubjectMap[$d->id][$subjectId])){
+                                                                        $selectedDetail = $d;
+                                                                        break;
+                                                                    }
+                                                                }
                                                                 // Check if mapping exists using our pre-loaded map
-                                                                $mapping = $examClassSubjectMap[$detail->id][$subjectId] ?? null;
+                                                                $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$subjectId] ?? null) : null;
                                                                 
                                                                 // Key for marks: {student_id}_{exam_class_subject_id}
                                                                 $key = $mapping ? ($student->id . '_' . $mapping['id']) : null;

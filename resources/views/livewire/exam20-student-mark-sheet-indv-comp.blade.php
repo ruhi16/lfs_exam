@@ -124,10 +124,16 @@
                                     @foreach($examDetailsGroupedByType as $examNameId => $examDetailsByType)
                                         @php
                                             $examName = $examNames->firstWhere('id', $examNameId);
-                                            $colspan = 0;
-                                            foreach($examDetailsByType->groupBy('exam_type_id') as $typeGroup) {
-                                                $colspan += $typeGroup->groupBy('exam_part_id')->count();
-                                            }
+                                            $colspan = $examDetailsByType->groupBy('exam_type_id')
+                                                ->map(function($typeGroup, $etypeId) use ($examTypes, $block) {
+                                                    $et = $examTypes->firstWhere('id', $etypeId);
+                                                    return (strtolower($et->name) === strtolower($block['label'])) 
+                                                        ? $typeGroup->groupBy('exam_part_id')->count() 
+                                                        : 0;
+                                                })->sum();
+                                            $examNameLabel = strtolower($examName->name ?? '');
+                                            $needsTotal = $isSummative && in_array($examNameLabel, ['end of first term','halfyearly term','end of second term','annually term']);
+                                            if($needsTotal){ $colspan += 1; }
                                         @endphp
                                         @if($examName && $colspan > 0)
                                             <th colspan="{{ $colspan }}" class="px-3 py-2 text-center font-medium text-gray-600 uppercase tracking-wider bg-blue-50">
@@ -135,47 +141,93 @@
                                             </th>
                                         @endif
                                     @endforeach
+                                    @if($isSummative)
+                                        <th class="px-3 py-2 text-center font-medium text-gray-600 uppercase tracking-wider bg-blue-50">
+                                            Grand Total
+                                        </th>
+                                        <th class="px-3 py-2 text-center font-medium text-gray-600 uppercase tracking-wider bg-blue-50">
+                                            Grade
+                                        </th>
+                                    @endif
                                 </tr>
                                 <tr>
                                     <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
                                         -
                                     </th>
                                     @foreach($examDetailsGroupedByType as $examNameId => $examDetailsByType)
+                                        @php
+                                            $examName = $examNames->firstWhere('id', $examNameId);
+                                            $examNameLabel = strtolower($examName->name ?? '');
+                                            $needsTotal = $isSummative && in_array($examNameLabel, ['end of first term','halfyearly term','end of second term','annually term']);
+                                        @endphp
                                         @foreach($examDetailsByType->groupBy('exam_type_id') as $examTypeId => $typeDetails)
                                             @php
                                                 $examType = $examTypes->firstWhere('id', $examTypeId);
-                                                $partsCount = $typeDetails->groupBy('exam_part_id')->count();
+                                                $isMatchingType = $examType && (strtolower($examType->name) === strtolower($block['label']));
+                                                $partsCount = $isMatchingType ? ($typeDetails->groupBy('exam_part_id')->count() + ($needsTotal ? 1 : 0)) : 0;
                                             @endphp
-                                            @if($examType && $partsCount > 0)
+                                            @if($isMatchingType && $partsCount > 0)
                                                 <th colspan="{{ $partsCount }}" class="px-2 py-1 text-center font-medium text-blue-700 uppercase tracking-wider bg-blue-100 border-l border-r border-gray-200">
                                                     {{ $examType->name }}
                                                 </th>
                                             @endif
                                         @endforeach
                                     @endforeach
+                                    @if($isSummative)
+                                        <th class="px-2 py-1 text-center font-medium text-blue-700 uppercase tracking-wider bg-blue-100 border-l border-r border-gray-200">
+                                            -
+                                        </th>
+                                        <th class="px-2 py-1 text-center font-medium text-blue-700 uppercase tracking-wider bg-blue-100 border-l border-r border-gray-200">
+                                            -
+                                        </th>
+                                    @endif
                                 </tr>
                                 <tr>
                                     <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
                                         -
                                     </th>
                                     @foreach($examDetailsGroupedByType as $examNameId => $examDetailsByType)
+                                        @php
+                                            $examName = $examNames->firstWhere('id', $examNameId);
+                                            $examNameLabel = strtolower($examName->name ?? '');
+                                            $needsTotal = $isSummative && in_array($examNameLabel, ['end of first term','halfyearly term','end of second term','annually term']);
+                                        @endphp
                                         @foreach($examDetailsByType->groupBy('exam_type_id') as $examTypeId => $typeDetails)
-                                            @foreach($typeDetails->groupBy('exam_part_id') as $examPartId => $partDetails)
-                                                @php
-                                                    $examPartObj = $examParts->firstWhere('id', $examPartId);
-                                                    $firstDetail = $partDetails->first();
-                                                @endphp
-                                                <th class="px-2 py-1 text-center font-medium text-purple-700 uppercase tracking-wider bg-purple-50 border border-gray-200">
-                                                    <div class="text-[10px] text-gray-500 mb-1">
-                                                        {{ $examPartObj ? $examPartObj->name : 'N/A' }}
-                                                    </div>
-                                                    <div class="text-[10px] text-gray-500">
-                                                        {{ $firstDetail->examMode->name ?? 'Mode N/A' }}
-                                                    </div>
-                                                </th>
-                                            @endforeach
+                                            @php
+                                                $examType = $examTypes->firstWhere('id', $examTypeId);
+                                                $isMatchingType = $examType && (strtolower($examType->name) === strtolower($block['label']));
+                                            @endphp
+                                            @if($isMatchingType)
+                                                @foreach($typeDetails->groupBy('exam_part_id') as $examPartId => $partDetails)
+                                                    @php
+                                                        $examPartObj = $examParts->firstWhere('id', $examPartId);
+                                                        $firstDetail = $partDetails->first();
+                                                    @endphp
+                                                    <th class="px-2 py-1 text-center font-medium text-purple-700 uppercase tracking-wider bg-purple-50 border border-gray-200">
+                                                        <div class="text-[10px] text-gray-500 mb-1">
+                                                            {{ $examPartObj ? $examPartObj->name : 'N/A' }}
+                                                        </div>
+                                                        <div class="text-[10px] text-gray-500">
+                                                            {{ $firstDetail->examMode->name ?? 'Mode N/A' }}
+                                                        </div>
+                                                    </th>
+                                                @endforeach
+                                                @if($needsTotal)
+                                                    <th class="px-2 py-1 text-center font-semibold text-gray-700 bg-gray-100 border border-gray-200">
+                                                        Total
+                                                    </th>
+                                                @endif
+                                            @endif
                                         @endforeach
                                     @endforeach
+                                    @if($isSummative)
+                                        <th class="px-2 py-1 text-center font-semibold text-gray-700 bg-gray-100 border border-gray-200">
+                                            -
+                                        </th>
+                                        <th class="px-2 py-1 text-center font-semibold text-gray-700 bg-gray-100 border border-gray-200">
+                                            -
+                                        </th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -197,54 +249,142 @@
                                                 </div>
                                             </div>
                                         </td>
+                                        @php
+                                            $subjectGrandMarks = 0;
+                                            $subjectGrandFull = 0;
+                                        @endphp
                                         @foreach($examDetailsGroupedByType as $examNameId => $examDetailsByType)
+                                            @php
+                                                $examName = $examNames->firstWhere('id', $examNameId);
+                                                $examNameLabel = strtolower($examName->name ?? '');
+                                                $needsTotal = $isSummative && in_array($examNameLabel, ['end of first term','halfyearly term','end of second term','annually term']);
+                                            @endphp
                                             @foreach($examDetailsByType->groupBy('exam_type_id') as $examTypeId => $typeDetails)
-                                                @foreach($typeDetails->groupBy('exam_part_id') as $examPartId => $partDetails)
-                                                    @php
-                                                        $examDetail = $partDetails->first();
-                                                        $entry = ($selectedStudentId) ? $this->getMarkEntry($classSubject->subject_id, $examDetail->id) : null;
-                                                        $val = $entry['marks'] ?? null;
-                                                        $isAbsent = $entry['is_absent'] ?? false;
-                                                        $gradeId = $entry['grade_id'] ?? null;
-                                                        $gradeObj = $gradeId ? ($this->gradesMap[$gradeId] ?? null) : null;
-                                                        $fm = $this->getFullMarks($classSubject->subject_id, $examDetail->id);
-                                                        if($isSummative && !$isAbsent && !is_null($val) && !is_null($fm)){
-                                                            $sumMarks += (int)$val;
-                                                            $sumFull += (int)$fm;
-                                                        }
-                                                    @endphp
-                                                    <td class="px-2 py-2 whitespace-nowrap text-center border border-gray-200 bg-white">
-                                                        @if($selectedStudentId)
-                                                            @if(!is_null($val))
-                                                                @if($val == -99 || $isAbsent)
-                                                                    <span class="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded font-semibold">AB</span>
+                                                @php
+                                                    $examType = $examTypes->firstWhere('id', $examTypeId);
+                                                    $isMatchingType = $examType && (strtolower($examType->name) === strtolower($block['label']));
+                                                @endphp
+                                                @if($isMatchingType)
+                                                    @foreach($typeDetails->groupBy('exam_part_id') as $examPartId => $partDetails)
+                                                        @php
+                                                            $examDetail = $partDetails->first();
+                                                            $entry = ($selectedStudentId) ? $this->getMarkEntry($classSubject->subject_id, $examDetail->id) : null;
+                                                            $val = $entry['marks'] ?? null;
+                                                            $isAbsent = $entry['is_absent'] ?? false;
+                                                            $gradeId = $entry['grade_id'] ?? null;
+                                                            $gradeObj = $gradeId ? ($this->gradesMap[$gradeId] ?? null) : null;
+                                                            $fm = $this->getFullMarks($classSubject->subject_id, $examDetail->id);
+                                                            if($isSummative && !$isAbsent && !is_null($val) && !is_null($fm)){
+                                                                $sumMarks += (int)$val;
+                                                                $sumFull += (int)$fm;
+                                                                $subjectGrandMarks += (int)$val;
+                                                                $subjectGrandFull += (int)$fm;
+                                                            }
+                                                        @endphp
+                                                        <td class="px-2 py-2 whitespace-nowrap text-center border border-gray-200 bg-white">
+                                                            @if($selectedStudentId)
+                                                                @if(!is_null($val))
+                                                                    @if($val == -99 || $isAbsent)
+                                                                        <span class="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded font-semibold">AB</span>
+                                                                    @else
+                                                                        <div class="flex flex-col items-center space-y-1">
+                                                                            <span class="inline-block px-2 py-1 bg-green-50 text-green-700 rounded font-semibold">{{ intval($val) }}</span>
+                                                                            <span class="text-[10px] text-gray-500">{{ $gradeObj->grade ?? '' }}</span>
+                                                                            <span class="text-[10px] text-gray-400">FM: {{ $fm ?? '-' }}</span>
+                                                                        </div>
+                                                                    @endif
                                                                 @else
-                                                                    <div class="flex flex-col items-center space-y-1">
-                                                                        <span class="inline-block px-2 py-1 bg-green-50 text-green-700 rounded font-semibold">{{ intval($val) }}</span>
-                                                                        <span class="text-[10px] text-gray-500">{{ $gradeObj->grade ?? '' }}</span>
-                                                                        <span class="text-[10px] text-gray-400">FM: {{ $fm ?? '-' }}</span>
-                                                                    </div>
+                                                                    <span class="text-[10px] text-gray-300">-</span>
                                                                 @endif
                                                             @else
-                                                                <span class="text-[10px] text-gray-300">-</span>
+                                                                <span class="text-[10px] text-gray-400">Select student</span>
                                                             @endif
-                                                        @else
-                                                            <span class="text-[10px] text-gray-400">Select student</span>
-                                                        @endif
-                                                    </td>
-                                                @endforeach
+                                                        </td>
+                                                    @endforeach
+                                                    @if($needsTotal)
+                                                        @php
+                                                            $termMarks = 0;
+                                                            $termFull = 0;
+                                                        @endphp
+                                                        @foreach($typeDetails->groupBy('exam_part_id') as $examPartId => $partDetails)
+                                                            @php
+                                                                $examDetail = $partDetails->first();
+                                                                $entry = ($selectedStudentId) ? $this->getMarkEntry($classSubject->subject_id, $examDetail->id) : null;
+                                                                $val = $entry['marks'] ?? null;
+                                                                $isAbsent = $entry['is_absent'] ?? false;
+                                                                $fm = $this->getFullMarks($classSubject->subject_id, $examDetail->id);
+                                                                if(!$isAbsent && !is_null($val) && !is_null($fm)){
+                                                                    $termMarks += (int)$val;
+                                                                    $termFull += (int)$fm;
+                                                                }
+                                                            @endphp
+                                                        @endforeach
+                                                        @php
+                                                            $termPercent = $termFull > 0 ? round(($termMarks / $termFull) * 100, 2) : null;
+                                                            $termGrade = ($summativeExamType && !is_null($termPercent)) ? $this->computeGradeByPercent($termPercent, $summativeExamType->id) : '';
+                                                        @endphp
+                                                        <td class="px-2 py-2 whitespace-nowrap text-center border border-gray-300 bg-gray-50 font-semibold text-gray-700">
+                                                            @if($selectedStudentId)
+                                                                @if($termFull > 0)
+                                                                    {{ $termMarks }} / {{ $termFull }} <span class="text-[10px] text-gray-500">({{ $termPercent ?? 0 }}%)</span> <span class="text-[10px] text-gray-700">Grade: {{ $termGrade }}</span>
+                                                                @else
+                                                                    <span class="text-[10px] text-gray-300">-</span>
+                                                                @endif
+                                                            @else
+                                                                <span class="text-[10px] text-gray-400">Select student</span>
+                                                            @endif
+                                                        </td>
+                                                    @endif
+                                                @endif
                                             @endforeach
                                         @endforeach
+                                        @if($isSummative)
+                                            @php
+                                                $grandPercent = $subjectGrandFull > 0 ? round(($subjectGrandMarks / $subjectGrandFull) * 100, 2) : null;
+                                                $grandGrade = ($summativeExamType && !is_null($grandPercent)) ? $this->computeGradeByPercent($grandPercent, $summativeExamType->id) : '';
+                                            @endphp
+                                            <td class="px-2 py-2 whitespace-nowrap text-center border border-gray-300 bg-gray-100 font-semibold text-gray-700">
+                                                @if($selectedStudentId)
+                                                    @if($subjectGrandFull > 0)
+                                                        {{ $subjectGrandMarks }} / {{ $subjectGrandFull }}
+                                                    @else
+                                                        <span class="text-[10px] text-gray-300">-</span>
+                                                    @endif
+                                                @else
+                                                    <span class="text-[10px] text-gray-400">Select student</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-2 py-2 whitespace-nowrap text-center border border-gray-300 bg-gray-100 font-semibold text-gray-700">
+                                                @if($selectedStudentId)
+                                                    {{ $grandGrade }}
+                                                @else
+                                                    <span class="text-[10px] text-gray-400">Select student</span>
+                                                @endif
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                                 @if($isSummative)
                                     @php
                                         $totalPercent = $sumFull > 0 ? round(($sumMarks / $sumFull) * 100, 2) : null;
                                         $totalGrade = ($summativeExamType && !is_null($totalPercent)) ? $this->computeGradeByPercent($totalPercent, $summativeExamType->id) : '';
+                                        $displayColCount = $examDetailsGroupedByType->map(function($examDetailsByType, $examNameId) use ($examTypes, $examNames) {
+                                            $examName = $examNames->firstWhere('id', $examNameId);
+                                            $examNameLabel = strtolower($examName->name ?? '');
+                                            $needsTotalLocal = in_array($examNameLabel, ['end of first term','halfyearly term','end of second term','annually term']);
+                                            $count = 0;
+                                            foreach($examDetailsByType->groupBy('exam_type_id') as $examTypeId => $typeDetails){
+                                                $examType = $examTypes->firstWhere('id', $examTypeId);
+                                                if($examType && strtolower($examType->name) === 'summative'){
+                                                    $count += $typeDetails->groupBy('exam_part_id')->count();
+                                                }
+                                            }
+                                            return $count + ($needsTotalLocal ? 1 : 0);
+                                        })->sum();
                                     @endphp
                                     <tr class="bg-gray-50">
                                         <td class="px-3 py-2 text-right font-semibold text-gray-700 sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Total</td>
-                                        <td colspan="{{ $examDetailsGroupedByType->sum(function($examDetailsByType) { return $examDetailsByType->groupBy('exam_type_id')->sum(function($typeDetails){ return $typeDetails->groupBy('exam_part_id')->count(); }); }) }}" class="px-3 py-2 text-center font-semibold text-gray-700">
+                                        <td colspan="{{ $displayColCount + 2 }}" class="px-3 py-2 text-center font-semibold text-gray-700">
                                             {{ $sumMarks }} / {{ $sumFull }} &nbsp; ({{ $totalPercent ?? 0 }}%) &nbsp; Grade: {{ $totalGrade }}
                                         </td>
                                     </tr>
@@ -255,6 +395,69 @@
                 </div>
             @endif
         @endforeach
+        @php
+            $overallMarks = 0; $overallFull = 0;
+            if(isset($summativeType)){
+                $classSubjectsSummative = $groupedClassSubjects[$summativeType->id] ?? collect();
+                $examDetailsSummative = $this->getExamDetailsBySubjectType($activeClass->id, $summativeType->id);
+                foreach($classSubjectsSummative as $classSubject){
+                    foreach($examDetailsSummative as $examNameId => $examDetailsByType){
+                        foreach($examDetailsByType->groupBy('exam_type_id') as $examTypeId => $typeDetails){
+                            foreach($typeDetails->groupBy('exam_part_id') as $examPartId => $partDetails){
+                                $examDetail = $partDetails->first();
+                                $entry = ($selectedStudentId) ? $this->getMarkEntry($classSubject->subject_id, $examDetail->id) : null;
+                                $val = $entry['marks'] ?? null;
+                                $isAbsent = $entry['is_absent'] ?? false;
+                                $fm = $this->getFullMarks($classSubject->subject_id, $examDetail->id);
+                                if(!$isAbsent && !is_null($val) && !is_null($fm)){
+                                    $overallMarks += (int)$val;
+                                    $overallFull += (int)$fm;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            $overallPercent = $overallFull > 0 ? round(($overallMarks / $overallFull) * 100, 2) : null;
+            $overallGrade = ($summativeExamType && !is_null($overallPercent)) ? $this->computeGradeByPercent($overallPercent, $summativeExamType->id) : '';
+        @endphp
+        <div class="mt-6 bg-white rounded border">
+            <div class="px-4 py-2 border-b text-sm font-medium text-gray-800">Overall Result & Promotion</div>
+            <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-700">
+                <div class="border rounded p-3">
+                    <div class="font-semibold mb-2">Overall Result</div>
+                    <div>Marks: {{ $overallMarks }} / {{ $overallFull }}</div>
+                    <div>Percent: {{ $overallPercent ?? 0 }}%</div>
+                    <div>Grade: {{ $overallGrade }}</div>
+                </div>
+                <div class="border rounded p-3">
+                    <div class="font-semibold mb-2">Promotional Declaration</div>
+                    <div>Declaration: ________________________________</div>
+                </div>
+                <div class="border rounded p-3">
+                    <div class="font-semibold mb-2">Next Class Details</div>
+                    <div>Class: __________________ Section: ____________</div>
+                </div>
+                <div class="border rounded p-3">
+                    <div class="font-semibold mb-2">Other Remarks</div>
+                    <div>______________________________________________</div>
+                </div>
+            </div>
+            <div class="px-4 py-3 border-t grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-700">
+                <div class="flex flex-col items-center">
+                    <div class="w-full text-center">Student Signature</div>
+                    <div class="mt-6 w-40 border-b border-gray-300"></div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="w-full text-center">Class Teacher Signature</div>
+                    <div class="mt-6 w-40 border-b border-gray-300"></div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="w-full text-center">Guardian Signature</div>
+                    <div class="mt-6 w-40 border-b border-gray-300"></div>
+                </div>
+            </div>
+        </div>
         <div class="mt-6 bg-white rounded border">
             <div class="px-4 py-2 border-b text-sm font-medium text-gray-800">Declaration & Rules</div>
             <table class="w-full text-xs">

@@ -156,6 +156,10 @@ class AdminDashboardContainerComp extends Component
                     'name' => 'Mark Sheet',
                     'component' => 'exam.student_mark_sheet'
                 ],
+                [
+                    'name' => 'Mark Sheet Old',
+                    'component' => 'exam.student_mark_sheet2'
+                ],
             ]
         ],
         [

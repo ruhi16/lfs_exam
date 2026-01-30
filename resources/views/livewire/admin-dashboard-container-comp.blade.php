@@ -243,6 +243,9 @@
                 @elseif($currentComponent === 'exam.student_mark_sheet')
                     @livewire('exam20-student-mark-sheet-indv-comp')
 
+                @elseif($currentComponent === 'exam.student_mark_sheet2')
+                    @livewire('exam20-student-mark-sheet-indv2-comp')
+
 
 
                 @else

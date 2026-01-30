@@ -75,7 +75,7 @@ class Exam12ExamMarkRegisterComp extends Component
 
         // 4. Load Exam Details
         $examDetails = Exam05Detail::where('myclass_id', $classId)
-            ->with(['examName', 'examPart'])
+            ->with(['examName', 'examPart', 'examType'])
             ->orderBy('exam_name_id')
             ->orderBy('exam_part_id')
             ->get();

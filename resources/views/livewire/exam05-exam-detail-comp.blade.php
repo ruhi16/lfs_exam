@@ -1,4 +1,4 @@
-<div class="bg-white rounded-lg shadow overflow-hidden">
+<div>
     <!-- Search and Filter Controls -->
     <div class="mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -25,20 +25,9 @@
                 </select>
             </div>
             <div class="flex items-end">
-                @if(!$isEditing)
-                    <button wire:click="startEditing" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Edit Exam Details
-                    </button>
-                @else
-                    <div class="flex space-x-2 w-full">
-                        <button wire:click="saveChanges" class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            Save Changes
-                        </button>
-                        <button wire:click="cancelEditing" class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Cancel
-                        </button>
-                    </div>
-                @endif
+                <button wire:click="create()" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Add New Exam Detail
+                </button>
             </div>
         </div>
     </div>
@@ -50,159 +39,89 @@
         </div>
     @endif
 
-    @if(session()->has('error'))
-        <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    <!-- Exam Details Table -->
+    <!-- Grouped Table -->
     <div class="overflow-x-auto">
-        @if($classes->count() > 0 && $examNames->count() > 0)
+        @if($groupedData->count() > 0)
             <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
-                <!-- Three-level Headers -->
-                <thead class="bg-gray-50 sticky top-0">
-                    <!-- Exam Names Level -->
+                <thead class="bg-gray-50">
                     <tr>
-                        <th rowspan="3" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 border-r">
-                            Class
-                        </th>
-                        
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
                         @foreach($examNames as $examName)
                             @php
-                                // Count total exam types for this exam name
-                                $typeSpan = 0;
-                                foreach($examStructure[$examName->id]['types'] ?? [] as $examTypeId => $typeData) {
-                                    $typeSpan += count($typeData['parts']);
-                                }
-                                                            
-                                // Assign a background color based on exam name index
-                                $colorClasses = [
-                                    'bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-pink-100',
-                                    'bg-purple-100', 'bg-indigo-100', 'bg-red-100', 'bg-teal-100',
-                                    'bg-orange-100', 'bg-cyan-100', 'bg-lime-100', 'bg-emerald-100'
-                                ];
-                                $bgColor = $colorClasses[$loop->index % count($colorClasses)];
+                                $colspan = $types->count() * $parts->count();
                             @endphp
-                            @if($typeSpan > 0)
-                                <th colspan="{{ $typeSpan }}" class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider {{ $bgColor }} border-b">
-                                    {{ $examName->name }}
-                                </th>
-                            @endif
+                            <th colspan="{{ $colspan }}" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
+                                {{ $examName->name }}
+                            </th>
                         @endforeach
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">Actions</th>
                     </tr>
                     
-                    <!-- Exam Types Level -->
                     <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">-</th>
+                        
                         @foreach($examNames as $examName)
-                            @foreach($examStructure[$examName->id]['types'] ?? [] as $examTypeId => $typeData)
-                                @php
-                                    $partSpan = count($typeData['parts']);
-                                    
-                                    // Assign a background color based on exam type index
-                                    $colorClasses = [
-                                        'bg-blue-50', 'bg-green-50', 'bg-yellow-50', 'bg-pink-50',
-                                        'bg-purple-50', 'bg-indigo-50', 'bg-red-50', 'bg-teal-50',
-                                        'bg-orange-50', 'bg-cyan-50', 'bg-lime-50', 'bg-emerald-50'
-                                    ];
-                                    $bgColor = $colorClasses[$loop->index % count($colorClasses)];
-                                @endphp
-                                @if($partSpan > 0)
-                                    <th colspan="{{ $partSpan }}" class="px-4 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider {{ $bgColor }} border-b">
-                                        {{ $typeData['name'] }}
-                                    </th>
-                                @endif
+                            @foreach($types as $examType)
+                                <th colspan="{{ $parts->count() }}" class="px-4 py-2 text-center text-xs font-medium text-blue-700 uppercase tracking-wider bg-blue-100 border-l border-r border-gray-200">
+                                    {{ $examType->name }}
+                                </th>
                             @endforeach
                         @endforeach
+                        <th class="px-4 py-2 text-center text-xs font-medium text-blue-700 uppercase tracking-wider bg-blue-100 border-l border-r border-gray-200">-</th>
                     </tr>
-                    
-                    <!-- Exam Parts Level -->
                     <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">-</th>
                         @foreach($examNames as $examName)
-                            @foreach($examStructure[$examName->id]['types'] ?? [] as $examTypeId => $typeData)
-                                @foreach($typeData['parts'] as $examPartId => $partData)
-                                    @php
-                                        // Assign a background color based on exam part index
-                                        $colorClasses = [
-                                            'bg-blue-25', 'bg-green-25', 'bg-yellow-25', 'bg-pink-25',
-                                            'bg-purple-25', 'bg-indigo-25', 'bg-red-25', 'bg-teal-25',
-                                            'bg-orange-25', 'bg-cyan-25', 'bg-lime-25', 'bg-emerald-25'
-                                        ];
-                                        $bgColor = $colorClasses[$loop->index % count($colorClasses)];
-                                    @endphp
-                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider {{ $bgColor }}">
-                                        {{ $partData['name'] }}
+                            @foreach($types as $examType)
+                                @foreach($parts as $examPart)
+                                    <th class="px-2 py-2 text-center text-xs font-medium text-purple-700 uppercase tracking-wider bg-purple-50 border border-gray-200">
+                                        {{ $examPart->name }}
                                     </th>
                                 @endforeach
                             @endforeach
                         @endforeach
+                        <th class="px-2 py-2 text-center text-xs font-medium text-purple-700 uppercase tracking-wider bg-purple-50 border border-gray-200">-</th>
                     </tr>
                 </thead>
                 
-                <!-- Table Body -->
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($classes as $class)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-gray-50 border-r">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-gray-50">
                                 {{ $class->name }}
                             </td>
-                            
                             @foreach($examNames as $examName)
-                                @foreach($examStructure[$examName->id]['types'] ?? [] as $examTypeId => $typeData)
-                                    @foreach($typeData['parts'] as $examPartId => $partData)
+                                @foreach($types as $examType)
+                                    @foreach($parts as $examPart)
                                         @php
-                                            $key = $class->id . '_' . $examName->id . '_' . $examTypeId . '_' . $examPartId;
-                                            $isSelected = isset($selectedDetails[$key]) && $selectedDetails[$key];
-                                            $selectedMode = $selectedModes[$key] ?? null;
-                                            
-                                            // Assign a background color based on exam name index
-                                            $colorClasses = [
-                                                'bg-blue-50', 'bg-green-50', 'bg-yellow-50', 'bg-pink-50',
-                                                'bg-purple-50', 'bg-indigo-50', 'bg-red-50', 'bg-teal-50',
-                                                'bg-orange-50', 'bg-cyan-50', 'bg-lime-50', 'bg-emerald-50'
-                                            ];
-                                            $bgColor = $colorClasses[$loop->parent->parent->index % count($colorClasses)];
+                                            $cellKey = $class->id . '_' . $examName->id . '_' . $examType->id . '_' . $examPart->id;
+                                            $enabled = data_get($matrix, "{$cellKey}.enabled", false);
+                                            $modeId = data_get($matrix, "{$cellKey}.mode_id", null);
                                         @endphp
-                                        <td class="px-3 py-4 text-center {{ $isSelected ? 'bg-green-50' : $bgColor }} border-r">
-                                            @if($isEditing)
-                                                <div class="flex flex-col items-center space-y-2">
-                                                    <!-- Checkbox -->
-                                                    <input type="checkbox"
-                                                           wire:click="toggleExamDetail({{ $class->id }}, {{ $examName->id }}, {{ $examTypeId }}, {{ $examPartId }})"
-                                                           {{ $isSelected ? 'checked' : '' }}
-                                                           class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-                                                    
-                                                    <!-- Mode Selection (only when selected) -->
-                                                    @if($isSelected)
-                                                        <select wire:model="selectedModes.{{ $key }}"
-                                                                class="mt-1 block w-full px-2 py-1 text-xs border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                                            @foreach($examModes as $mode)
-                                                                <option value="{{ $mode->id }}">{{ $mode->name }}</option>
-                                                            @endforeach
-                                                        </select>
-                                                    @endif
+                                        <td class="px-2 py-2 whitespace-nowrap text-sm text-gray-700 text-center border border-gray-200 bg-white">
+                                            <div class="flex flex-col items-center space-y-2">
+                                                <label class="inline-flex items-center space-x-2">
+                                                    <input type="checkbox" wire:model="matrix.{{ $cellKey }}.enabled" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                                    <span class="text-xs text-gray-600">Enable</span>
+                                                </label>
+                                                <div class="flex flex-wrap items-center justify-center gap-2">
+                                                    @foreach($modes as $mode)
+                                                        <label class="inline-flex items-center space-x-1">
+                                                            <input type="radio" name="mode_{{ $cellKey }}" value="{{ $mode->id }}" wire:model="matrix.{{ $cellKey }}.mode_id" class="h-3 w-3 text-purple-600 border-gray-300 focus:ring-purple-500" @if(!$enabled) disabled @endif>
+                                                            <span class="text-[11px] text-gray-600">{{ $mode->name }}</span>
+                                                        </label>
+                                                    @endforeach
                                                 </div>
-                                            @else
-                                                @if($isSelected)
-                                                    <div class="text-center">
-                                                        <div class="text-green-600 font-medium">✓ Active</div>
-                                                        @if($selectedMode)
-                                                            @php
-                                                                $mode = $examModes->firstWhere('id', $selectedMode);
-                                                            @endphp
-                                                            @if($mode)
-                                                                <div class="text-xs text-gray-600 mt-1">{{ $mode->name }}</div>
-                                                            @endif
-                                                        @endif
-                                                    </div>
-                                                @else
-                                                    <div class="text-gray-400 text-xs">-</div>
-                                                @endif
-                                            @endif
+                                            </div>
                                         </td>
                                     @endforeach
                                 @endforeach
                             @endforeach
+                            <td class="px-2 py-2 text-center border border-gray-200 bg-white">
+                                <button wire:click="saveClassConfig({{ $class->id }})" class="px-3 py-1 text-xs font-medium text-white bg-emerald-600 border border-emerald-600 rounded hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                    Save
+                                </button>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -214,41 +133,333 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-1">No Data Found</h3>
-                <p class="text-gray-500">Please configure classes, exam names, types, and parts first.</p>
+                <h3 class="text-lg font-medium text-gray-900 mb-1">No Exam Details Found</h3>
+                <p class="text-gray-500">Get started by adding your first exam detail.</p>
+                <div class="mt-6">
+                    <button wire:click="create()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Add Exam Detail
+                    </button>
+                </div>
             </div>
         @endif
     </div>
 
-    <!-- Legend -->
-    @if($classes->count() > 0 && $examNames->count() > 0)
-        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 class="text-sm font-medium text-gray-700 mb-2">How to use:</h4>
-            <ul class="text-sm text-gray-600 space-y-1">
-                @if(!$isEditing)
-                    <li>• Click "Edit Exam Details" to enable editing mode</li>
-                    <li>• Green cells indicate active exam configurations</li>
-                    <li>• Each cell shows the exam mode for that configuration</li>
-                @else
-                    <li>• Check boxes to activate exam configurations for classes</li>
-                    <li>• Select exam modes from the dropdowns for active configurations</li>
-                    <li>• Click "Save Changes" to save your configuration</li>
-                    <li>• Click "Cancel" to discard changes</li>
-                @endif
-            </ul>
-            <div class="mt-3 pt-3 border-t border-gray-200">
-                <h5 class="text-xs font-medium text-gray-700 mb-1">Color Guide:</h5>
-                <div class="flex flex-wrap gap-3 text-xs">
-                    <div class="flex items-center">
-                        <div class="w-3 h-3 bg-green-100 rounded mr-1"></div>
-                        <span>Active configuration</span>
+    <!-- Modal Form -->
+    <div x-data="{ isOpen: @entangle('isOpen') }" x-show="isOpen" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 transition-opacity">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+            
+            <div x-show="isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-headline">
+                                {{ $isEdit ? 'Edit Exam Detail' : 'Add New Exam Detail' }}
+                            </h3>
+                            <div class="mt-4 w-full">
+                                <form wire:submit.prevent="submitForm">
+                                    <div class="space-y-4">
+                                        <!-- Basic Information -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="session_id" class="block text-sm font-medium text-gray-700">Session *</label>
+                                                <select 
+                                                    wire:model.defer="session_id" 
+                                                    id="session_id" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('session_id') border-red-500 @enderror"
+                                                    required
+                                                >
+                                                    <option value="">-- Select Session --</option>
+                                                    @foreach($sessions as $session)
+                                                        <option value="{{ $session->id }}">{{ $session->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('session_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+
+                                            <div>
+                                                <label for="exam_name_id" class="block text-sm font-medium text-gray-700">Exam Name *</label>
+                                                <select 
+                                                    wire:model.defer="exam_name_id" 
+                                                    id="exam_name_id" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('exam_name_id') border-red-500 @enderror"
+                                                    required
+                                                >
+                                                    <option value="">-- Select Exam Name --</option>
+                                                    @foreach($examNames as $exam)
+                                                        <option value="{{ $exam->id }}">{{ $exam->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('exam_name_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <!-- Classes Selection (Horizontal checkboxes) -->
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Select Classes *</label>
+                                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                                                @foreach($classes as $class)
+                                                    <div class="flex items-center">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            value="{{ $class->id }}" 
+                                                            id="class_{{ $class->id }}"
+                                                            wire:model="selectedClasses"
+                                                            class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        >
+                                                        <label for="class_{{ $class->id }}" class="ml-2 text-sm text-gray-700">{{ $class->name }}</label>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            @error('selectedClasses') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Exam Types Selection (Checkboxes) -->
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Select Exam Types *</label>
+                                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                                @foreach($types as $type)
+                                                    <div class="flex items-center">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            value="{{ $type->id }}" 
+                                                            id="type_{{ $type->id }}"
+                                                            wire:model="selectedExamTypes"
+                                                            class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        >
+                                                        <label for="type_{{ $type->id }}" class="ml-2 text-sm text-gray-700">{{ $type->name }}</label>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            @error('selectedExamTypes') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Exam Parts Selection for Selected Exam Types -->
+                                        @if($selectedExamTypes && count($selectedExamTypes) > 0)
+                                            <div class="mb-4">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Select Exam Parts for Selected Types</label>
+                                                <div class="space-y-4">
+                                                    @foreach($selectedExamTypes as $examTypeId)
+                                                        @php
+                                                            $examType = $types->firstWhere('id', $examTypeId);
+                                                        @endphp
+                                                        @if($examType)
+                                                            <div class="border border-gray-200 rounded p-3 bg-gray-50">
+                                                                <h4 class="font-medium text-gray-800 mb-2">{{ $examType->name }}</h4>
+                                                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                                                    @foreach($parts as $part)
+                                                                        <div class="flex items-center">
+                                                                            <input 
+                                                                                type="checkbox" 
+                                                                                value="{{ $part->id }}" 
+                                                                                id="part_{{ $examTypeId }}_{{ $part->id }}"
+                                                                                wire:model="selectedExamParts.{{ $examTypeId }}"
+                                                                                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                            >
+                                                                            <label for="part_{{ $examTypeId }}_{{ $part->id }}" class="ml-2 text-sm text-gray-700">{{ $part->name }}</label>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                                @error('selectedExamParts') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+                                        @endif
+
+                                        <!-- Exam Mode Selection (Option buttons) -->
+                                        <div class="mb-4">
+                                            <label for="exam_mode_id" class="block text-sm font-medium text-gray-700">Exam Mode *</label>
+                                            <select wire:model.defer="exam_mode_id" id="exam_mode_id" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('exam_mode_id') border-red-500 @enderror" required>
+                                                <option value="">-- Select Exam Mode --</option>
+                                                @foreach($modes as $mode)
+                                                    <option value="{{ $mode->id }}">{{ $mode->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('exam_mode_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Other form fields -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="name" class="block text-sm font-medium text-gray-700">Exam Detail Name *</label>
+                                                <input 
+                                                    type="text" 
+                                                    wire:model.defer="name" 
+                                                    id="name" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('name') border-red-500 @enderror"
+                                                    placeholder="Enter exam detail name"
+                                                    required
+                                                >
+                                                @error('name') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+
+                                            <div>
+                                                <label for="order_index" class="block text-sm font-medium text-gray-700">Order Index</label>
+                                                <input 
+                                                    type="number" 
+                                                    wire:model.defer="order_index" 
+                                                    id="order_index" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('order_index') border-red-500 @enderror"
+                                                    placeholder="Enter order index"
+                                                >
+                                                @error('order_index') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                                            <textarea 
+                                                wire:model.defer="description" 
+                                                id="description" 
+                                                rows="3"
+                                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('description') border-red-500 @enderror"
+                                                placeholder="Enter description"
+                                            ></textarea>
+                                            @error('description') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="school_id" class="block text-sm font-medium text-gray-700">School</label>
+                                                <select 
+                                                    wire:model.defer="school_id" 
+                                                    id="school_id" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('school_id') border-red-500 @enderror"
+                                                >
+                                                    <option value="">-- Select School --</option>
+                                                    @foreach($schools as $school)
+                                                        <option value="{{ $school->id }}">{{ $school->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('school_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+
+                                            <div>
+                                                <label for="user_id" class="block text-sm font-medium text-gray-700">Created By</label>
+                                                <select 
+                                                    wire:model.defer="user_id" 
+                                                    id="user_id" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('user_id') border-red-500 @enderror"
+                                                >
+                                                    <option value="">-- Select User --</option>
+                                                    @foreach($users as $user)
+                                                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('user_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label for="is_optional" class="block text-sm font-medium text-gray-700">Is Optional</label>
+                                                <select 
+                                                    wire:model.defer="is_optional" 
+                                                    id="is_optional" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('is_optional') border-red-500 @enderror"
+                                                >
+                                                    <option value="0">No</option>
+                                                    <option value="1">Yes</option>
+                                                </select>
+                                                @error('is_optional') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+
+                                            <div>
+                                                <label for="is_active" class="block text-sm font-medium text-gray-700">Is Active</label>
+                                                <select 
+                                                    wire:model.defer="is_active" 
+                                                    id="is_active" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('is_active') border-red-500 @enderror"
+                                                >
+                                                    <option value="1">Yes</option>
+                                                    <option value="0">No</option>
+                                                </select>
+                                                @error('is_active') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+
+                                            <div>
+                                                <label for="is_finalized" class="block text-sm font-medium text-gray-700">Is Finalized</label>
+                                                <select 
+                                                    wire:model.defer="is_finalized" 
+                                                    id="is_finalized" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('is_finalized') border-red-500 @enderror"
+                                                >
+                                                    <option value="0">No</option>
+                                                    <option value="1">Yes</option>
+                                                </select>
+                                                @error('is_finalized') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="approved_by" class="block text-sm font-medium text-gray-700">Approved By</label>
+                                                <select 
+                                                    wire:model.defer="approved_by" 
+                                                    id="approved_by" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('approved_by') border-red-500 @enderror"
+                                                >
+                                                    <option value="">-- Select Approver --</option>
+                                                    @foreach($users as $user)
+                                                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('approved_by') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+
+                                            <div>
+                                                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                                                <input 
+                                                    type="text" 
+                                                    wire:model.defer="status" 
+                                                    id="status" 
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('status') border-red-500 @enderror"
+                                                    placeholder="Enter status"
+                                                >
+                                                @error('status') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <label for="remarks" class="block text-sm font-medium text-gray-700">Remarks</label>
+                                            <input 
+                                                type="text" 
+                                                wire:model.defer="remarks" 
+                                                id="remarks" 
+                                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('remarks') border-red-500 @enderror"
+                                                placeholder="Enter remarks"
+                                            >
+                                            @error('remarks') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center">
-                        <div class="w-3 h-3 bg-white border rounded mr-1"></div>
-                        <span>Inactive configuration</span>
-                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button 
+                        wire:click.prevent="submitForm" 
+                        type="button" 
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                        {{ $isEdit ? 'Update' : 'Create' }}
+                    </button>
+                    <button 
+                        @click="isOpen = false" 
+                        type="button" 
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                        Cancel
+                    </button>
                 </div>
             </div>
         </div>
-    @endif
+    </div>
 </div>
