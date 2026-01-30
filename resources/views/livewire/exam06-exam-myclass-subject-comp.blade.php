@@ -22,18 +22,18 @@
             
             <div class="mb-6 flex justify-between items-center">
                 <h2 class="text-xl font-semibold text-gray-800">
-                    Map Subjects to Exam Options for: {{ $activeClass->name ?? 'N/A' }}
+                    Subject to Exam Mapping for: {{ $activeClass->name ?? 'N/A' }}
                 </h2>
                 <div class="flex space-x-2">
                     @if(!$isEditing)
                         <button wire:click="startEditing" 
                                 class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                            Configure Subject Mapping
+                            Configure Mapping
                         </button>
                     @else
                         <button wire:click="saveChanges" 
                                 class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                            Save Mapping
+                            Save All
                         </button>
                         <button wire:click="cancelEditing" 
                                 class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">
@@ -47,16 +47,13 @@
                 <!-- Subject Mapping Table -->
                 <div class="overflow-x-auto max-h-screen">
                     <table class="min-w-full divide-y divide-gray-200" wire:key="exam-subject-table">
-                        <!-- Three-level Headers -->
+                        <!-- Three-level Headers with Color Differentiation -->
                         <thead class="bg-gray-50 sticky top-0 z-10">
-                            <!-- Exam Names Level -->
+                            <!-- Exam Names Level with Unique Colors -->
                             <tr>
                                 <th rowspan="3" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 border-r">
                                     Subject
                                 </th>
-                                {{-- <th rowspan="3" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 border-r">
-                                    Subject Type
-                                </th> --}}
                                 
                                 @foreach($examStructure as $examNameId => $examNameData)
                                     @php
@@ -65,33 +62,62 @@
                                         foreach($examNameData['types'] as $examTypeId => $typeData) {
                                             $typeSpan += count($typeData['parts']);
                                         }
+                                        
+                                        // Assign unique color based on exam name index
+                                        $examNameColors = [
+                                            'bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-pink-100',
+                                            'bg-purple-100', 'bg-indigo-100', 'bg-red-100', 'bg-teal-100',
+                                            'bg-orange-100', 'bg-cyan-100', 'bg-lime-100', 'bg-emerald-100'
+                                        ];
+                                        $examNameBg = $examNameColors[$loop->index % count($examNameColors)];
                                     @endphp
-                                    <th colspan="{{ $typeSpan }}" class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-blue-100 border-b" wire:key="header-examname-{{ $examNameId }}">
+                                    <th colspan="{{ $typeSpan }}" class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider {{ $examNameBg }} border-b" wire:key="header-examname-{{ $examNameId }}">
                                         {{ $examNameData['name'] }}
                                     </th>
                                 @endforeach
+                                
+                                <th rowspan="3" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 border-l">
+                                    Actions
+                                </th>
                             </tr>
                             
-                            <!-- Exam Types Level -->
+                            <!-- Exam Types Level with Unique Colors -->
                             <tr>
                                 @foreach($examStructure as $examNameId => $examNameData)
                                     @foreach($examNameData['types'] as $examTypeId => $typeData)
                                         @php
                                             $partSpan = count($typeData['parts']);
+                                            
+                                            // Assign unique color based on exam type index within exam name
+                                            $examTypeColors = [
+                                                'bg-blue-50', 'bg-green-50', 'bg-yellow-50', 'bg-pink-50',
+                                                'bg-purple-50', 'bg-indigo-50', 'bg-red-50', 'bg-teal-50',
+                                                'bg-orange-50', 'bg-cyan-50', 'bg-lime-50', 'bg-emerald-50'
+                                            ];
+                                            $examTypeBg = $examTypeColors[$loop->index % count($examTypeColors)];
                                         @endphp
-                                        <th colspan="{{ $partSpan }}" class="px-4 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider bg-blue-50 border-b" wire:key="header-examtype-{{ $examTypeId }}">
+                                        <th colspan="{{ $partSpan }}" class="px-4 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider {{ $examTypeBg }} border-b" wire:key="header-examtype-{{ $examTypeId }}">
                                             {{ $typeData['name'] }}
                                         </th>
                                     @endforeach
                                 @endforeach
                             </tr>
                             
-                            <!-- Exam Parts Level -->
+                            <!-- Exam Parts Level with Unique Colors -->
                             <tr>
                                 @foreach($examStructure as $examNameId => $examNameData)
                                     @foreach($examNameData['types'] as $examTypeId => $typeData)
                                         @foreach($typeData['parts'] as $examPartId => $partData)
-                                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-25" wire:key="header-exampart-{{ $examPartId }}">
+                                            @php
+                                                // Assign unique color based on exam part index
+                                                $examPartColors = [
+                                                    'bg-blue-25', 'bg-green-25', 'bg-yellow-25', 'bg-pink-25',
+                                                    'bg-purple-25', 'bg-indigo-25', 'bg-red-25', 'bg-teal-25',
+                                                    'bg-orange-25', 'bg-cyan-25', 'bg-lime-25', 'bg-emerald-25'
+                                                ];
+                                                $examPartBg = $examPartColors[$loop->index % count($examPartColors)];
+                                            @endphp
+                                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider {{ $examPartBg }}" wire:key="header-exampart-{{ $examPartId }}">
                                                 {{ $partData['name'] }}
                                             </th>
                                         @endforeach
@@ -99,6 +125,8 @@
                                 @endforeach
                             </tr>
                         </thead>
+                        
+                        <!-- Table Body with Subjects Only -->
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($classSubjects as $classSubject)
                                 @php
@@ -116,7 +144,7 @@
                                         </div>
                                     </td>
                                     
-                                    <!-- Exam Part Columns with Type Matching -->
+                                    <!-- Exam Part Columns - Display Only -->
                                     @foreach($examStructure as $examNameId => $examNameData)
                                         @foreach($examNameData['types'] as $examTypeId => $typeData)
                                             @foreach($typeData['parts'] as $examPartId => $partData)
@@ -128,23 +156,25 @@
                                                     // Check if subject type matches exam type
                                                     $examTypeName = $typeData['name'] ?? '';
                                                     $isTypeMatch = (strtolower(trim($subjectTypeName)) === strtolower(trim($examTypeName)));
-                                                    
-                                                    // Create mapping key only if examDetailId and subject_id exist
-                                                    $key = $examDetailId && $classSubject->subject_id ? $examDetailId . '_' . $classSubject->subject_id : null;
-                                                    $isSelected = $examDetailId && $isTypeMatch && $key && isset($selectedSubjects[$key]) && $selectedSubjects[$key]['is_selected'];
                                                 @endphp
-                                                <td class="px-3 py-4 text-center {{ $isTypeMatch ? ($examDetailId ? 'bg-green-50' : 'bg-yellow-50') : 'bg-gray-50' }} border-r border-gray-100" wire:key="cell-{{ $classSubject->id }}-{{ $examPartId }}">
-                                                    @if($examDetailId && $isTypeMatch && $classSubject->subject_id)
-                                                        <input type="checkbox"
-                                                               wire:click="toggleSubject({{ $examDetailId }}, {{ $classSubject->subject_id }})"
-                                                               wire:key="checkbox-{{ $examDetailId }}-{{ $classSubject->subject_id }}"
-                                                               {{ $isSelected ? 'checked' : '' }}
-                                                               {{ !$isEditing ? 'disabled' : '' }}
-                                                               class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 {{ !$isEditing ? 'cursor-not-allowed' : '' }}">
-                                                        <div class="text-xs text-gray-500 mt-1">{{ $examTypeName }}</div>
-                                                    @elseif($examDetailId)
-                                                        <div class="text-xs text-gray-400">Type mismatch</div>
-                                                        <div class="text-xs text-gray-400 mt-1">({{ $examTypeName }})</div>
+                                                <td class="px-3 py-4 text-center border-r border-gray-100" wire:key="cell-{{ $classSubject->id }}-{{ $examPartId }}">
+                                                    @if($examDetailId)
+                                                        @if($isEditing)
+                                                            <div class="flex flex-col items-center">
+                                                                <input type="checkbox" 
+                                                                       wire:model.defer="selectedMappings.{{ $classSubject->subject_id }}.{{ $examDetailId }}"
+                                                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 h-5 w-5 cursor-pointer">
+                                                                @if(!$isTypeMatch)
+                                                                    <span class="text-[10px] text-yellow-600 mt-1" title="Subject Type mismatch">⚠️</span>
+                                                                @endif
+                                                            </div>
+                                                        @else
+                                                            @if(isset($selectedMappings[$classSubject->subject_id][$examDetailId]) && $selectedMappings[$classSubject->subject_id][$examDetailId])
+                                                                <div class="text-green-600 font-bold text-lg">✓</div>
+                                                            @else
+                                                                <span class="text-gray-200">-</span>
+                                                            @endif
+                                                        @endif
                                                     @else
                                                         <span class="text-xs text-gray-400">-</span>
                                                     @endif
@@ -152,10 +182,22 @@
                                             @endforeach
                                         @endforeach
                                     @endforeach
+                                    
+                                    <!-- Actions Column -->
+                                    <td class="px-4 py-4 text-center border-l border-gray-200">
+                                        @if($isEditing && isset($classes[$activeTab]))
+                                            <button wire:click="saveClassData({{ $classes[$activeTab]->id }})"
+                                                    class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors">
+                                                Save Class
+                                            </button>
+                                        @else
+                                            <span class="text-xs text-gray-400">-</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="50" class="px-6 py-12 text-center">
+                                    <td colspan="100" class="px-6 py-12 text-center">
                                         <div class="text-center">
                                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h.01M15 7h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -172,30 +214,15 @@
                 
                 <!-- Legend -->
                 <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 class="text-sm font-medium text-gray-700 mb-2">How to use:</h4>
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Visual Guide:</h4>
                     <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Click "Configure Subject Mapping" to enable editing</li>
-                        <li>• Only subjects with matching types can be selected (green background)</li>
-                        <li>• Check boxes to map subjects to compatible exam options</li>
-                        <li>• Click "Save Mapping" to save your configuration</li>
+                        <li>• Each <strong>Exam Name</strong> has a unique background color</li>
+                        <li>• Each <strong>Exam Type</strong> within an exam name has a unique lighter shade</li>
+                        <li>• Each <strong>Exam Part</strong> has a unique very light shade</li>
+                        <li>• Subjects are ordered by subject_type (descending)</li>
+                        <li>• Green checkmark indicates matching subject/exam types</li>
+                        <li>• Yellow warning indicates type mismatch</li>
                     </ul>
-                    <div class="mt-3 pt-3 border-t border-gray-200">
-                        <h5 class="text-xs font-medium text-gray-700 mb-1">Color Guide:</h5>
-                        <div class="flex flex-wrap gap-3 text-xs">
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 bg-green-100 rounded mr-1"></div>
-                                <span>Matching subject/exam types</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 bg-yellow-100 rounded mr-1"></div>
-                                <span>Type mismatch</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 bg-gray-100 rounded mr-1"></div>
-                                <span>No exam detail</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             @else
                 <div class="text-center py-12">

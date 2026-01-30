@@ -211,7 +211,7 @@
 
                 @elseif($currentComponent === 'exam.exam_class_subject')
                     @livewire('exam06-exam-myclass-subject-comp')
-
+                    {{-- @livewire('myclass-subject-display-comp') --}}
 
 
 
