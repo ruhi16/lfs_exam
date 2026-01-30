@@ -124,6 +124,21 @@ Route::get('/test-home-menu', function () {
     return view('test-home-menu');
 });
 
+// Test route for Exam06ExamMyclassSubjectComp
+Route::get('/test-exam-class-subject', function () {
+    return view('test-exam-class-subject');
+});
+
+// Debug test route
+Route::get('/test-livewire-debug', function () {
+    return view('test-livewire-debug');
+});
+
+// Simple test route
+Route::get('/test-simple-component', function () {
+    return view('test-simple-component');
+});
+
 // Include test routes
 // require __DIR__ . '/test.php';
 

@@ -107,12 +107,21 @@
                                                 </th>
                                                 <!-- Dynamic Subject Columns -->
                                                 @foreach($classSubjects as $myclassSubject)
-                                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-300">
+                                                    @php
+                                                        $subjectType = $myclassSubject->subject->subjectType->name ?? 'Unknown';
+                                                        $isFormative = $subjectType === 'Formative';
+                                                        $headerClass = $isFormative ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200';
+                                                        $textClass = $isFormative ? 'text-yellow-700' : 'text-blue-700';
+                                                    @endphp
+                                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-300 {{ $headerClass }}">
                                                         <div class="space-y-1">
-                                                            <div>{{ $myclassSubject->subject->name ?? 'Subject' }}</div>
-                                                            <div class="text-xs text-gray-400">
-                                                                Type: {{ $myclassSubject->subject->subjectType->name ?? 'N/A' }}
+                                                            <div class="font-semibold {{ $textClass }}">{{ $myclassSubject->subject->name ?? 'Subject' }}</div>
+                                                            <div class="text-xs {{ $isFormative ? 'text-yellow-600' : 'text-blue-600' }}">
+                                                                Type: {{ $subjectType }}
                                                             </div>
+                                                            {{-- <div class="text-xs text-gray-500 italic">
+                                                                {{ $isFormative ? 'Formative Assessment' : 'Summative Assessment' }}
+                                                            </div> --}}
                                                         </div>
                                                     </th>
                                                 @endforeach
@@ -187,21 +196,39 @@
                                                                         }
                                                                     }
                                                                 @endphp
-                                                                <td class="px-4 py-4 bg-white border-l border-gray-200">
-                                                                    @if($examClassSubject)
-                                                                        <div class="space-y-2">
-                                                                            <!-- Exam Detail ID and Class Subject ID -->
-                                                                            <div class="flex flex-wrap gap-1 text-xs">
-                                                                                <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                                                                    Detail: {{ $detail->id }}
-                                                                                </span>
-                                                                                <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                                                                @php
+                                                                    $subjectType = $myclassSubject->subject->subjectType->name ?? 'Unknown';
+                                                                    $isFormative = $subjectType === 'Formative';
+                                                                    $cellClass = $isFormative ? 'bg-yellow-50' : 'bg-blue-50';
+                                                                @endphp
+                                                                <td class="px-4 py-4 {{ $cellClass }} border-l border-gray-200">
+                                                                    <div class="space-y-2">
+                                                                        <!-- Subject Type Indicator -->
+                                                                        <div class="text-center">
+                                                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $isFormative ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800' }}">
+                                                                                {{ $isFormative ? 'FORMATIVE' : 'SUMMATIVE' }}
+                                                                            </span>
+                                                                        </div>
+                                                                        
+                                                                        <!-- Exam Detail ID and Class Subject ID (show for all subjects) -->
+                                                                        <div class="flex flex-wrap gap-1 text-xs justify-center">
+                                                                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                                                                Detail: {{ $detail->id }}
+                                                                            </span>
+                                                                            @if($examClassSubject)
+                                                                                <span class="{{ $isFormative ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700' }} px-2 py-1 rounded">
                                                                                     Subject: {{ $examClassSubject->id }}
                                                                                 </span>
-                                                                            </div>
-                                                                            
-                                                                            <!-- Marks Input/Display -->
-                                                                            <div class="text-center">
+                                                                            @else
+                                                                                <span class="bg-red-100 text-red-600 px-2 py-1 rounded">
+                                                                                    No Class Subject
+                                                                                </span>
+                                                                            @endif
+                                                                        </div>
+                                                                        
+                                                                        <!-- Marks Input/Display -->
+                                                                        <div class="text-center">
+                                                                            @if($examClassSubject)
                                                                                 @if($isEditing)
                                                                                     <div class="space-y-1">
                                                                                         <input type="number" 
@@ -234,13 +261,18 @@
                                                                                         @endif
                                                                                     </div>
                                                                                 @endif
-                                                                            </div>
+                                                                            @else
+                                                                                <div class="text-center">
+                                                                                    <div class="text-gray-400 text-sm italic mb-1">
+                                                                                        Not Configured
+                                                                                    </div>
+                                                                                    <div class="text-xs text-gray-500">
+                                                                                        {{ $isFormative ? 'Formative' : 'Summative' }} subject not linked to this exam
+                                                                                    </div>
+                                                                                </div>
+                                                                            @endif
                                                                         </div>
-                                                                    @else
-                                                                        <div class="text-center text-gray-400 text-sm">
-                                                                            N/A
-                                                                        </div>
-                                                                    @endif
+                                                                    </div>
                                                                 </td>
                                                             @endforeach
                                                         </tr>

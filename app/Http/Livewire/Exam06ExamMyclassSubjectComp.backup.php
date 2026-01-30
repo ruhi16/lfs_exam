@@ -136,11 +136,6 @@ class Exam06ExamMyclassSubjectComp extends Component
     
     public function toggleSubject($examDetailId, $subjectId)
     {
-        // Validate inputs
-        if (!$examDetailId || !$subjectId) {
-            return;
-        }
-        
         $key = $examDetailId . '_' . $subjectId;
         
         if (isset($this->selectedSubjects[$key])) {
@@ -156,12 +151,11 @@ class Exam06ExamMyclassSubjectComp extends Component
             ];
         }
     }
-
     
     public function updated($field, $value)
     {
         // Log the update for debugging
-        Log::info('Livewire field updated: ' . $field . ' = ' . $value);
+        \Log::info('Livewire field updated: ' . $field . ' = ' . $value);
         // This will be called automatically when any property is updated
         // We can add validation or additional logic here if needed
     }
@@ -224,11 +218,6 @@ class Exam06ExamMyclassSubjectComp extends Component
             foreach ($this->selectedSubjects as $key => $data) {
                 if ($data['is_selected']) {
                     list($examDetailId, $subjectId) = explode('_', $key);
-                    
-                    // Skip if either ID is invalid
-                    if (!$examDetailId || !$subjectId) {
-                        continue;
-                    }
                     
                     Exam06ClassSubject::updateOrCreate(
                         [
