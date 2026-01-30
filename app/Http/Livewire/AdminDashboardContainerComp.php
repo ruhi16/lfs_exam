@@ -152,6 +152,10 @@ class AdminDashboardContainerComp extends Component
                     'name' => 'Teacher Entry',
                     'component' => 'exam.teacher_marks_entry'
                 ],
+                [
+                    'name' => 'Mark Sheet',
+                    'component' => 'exam.student_mark_sheet'
+                ],
             ]
         ],
         [
