@@ -76,4 +76,24 @@ class Exam06ClassSubject extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'approved_by');
     }
+
+    public function scopeForDetail($query, $classId, $subjectId, $examDetailId)
+    {
+        return $query->where('myclass_id', $classId)
+            ->where('subject_id', $subjectId)
+            ->where('exam_detail_id', $examDetailId);
+    }
+
+    public static function resolveForExamDetail($examClassSubjectId, $examDetailId)
+    {
+        $base = self::find($examClassSubjectId);
+        if (!$base) {
+            return null;
+        }
+        $match = self::where('myclass_id', $base->myclass_id)
+            ->where('subject_id', $base->subject_id)
+            ->where('exam_detail_id', $examDetailId)
+            ->first();
+        return $match ? $match->id : null;
+    }
 }

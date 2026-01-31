@@ -256,12 +256,12 @@ class Exam06ExamMyclassSubjectComp extends Component
             $classId = $this->classes[$this->activeTab]->id;
             $classSubjects = MyclassSubject::where('myclass_id', $classId)
                 ->with(['subject', 'subject.subjectType'])
-                ->whereHas('subject') // Ensure subject exists
                 ->orderBy('order_index')
+                ->orderBy('id')
                 ->get();
         }
         
-        return view('livewire.exam06-exam-myclass-subject-comp', [
+        return view('livewire.exam06-exam-myclass-subject-comp.backup', [
             'classes' => $this->classes,
             'examStructure' => $this->examStructure,
             'classSubjects' => $classSubjects,

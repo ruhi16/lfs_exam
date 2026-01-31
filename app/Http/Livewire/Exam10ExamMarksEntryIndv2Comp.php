@@ -233,11 +233,15 @@ class Exam10ExamMarksEntryIndv2Comp extends Component
                     }
                 }
                 
+                $resolvedExamClassSubjectId = \App\Models\Exam06ClassSubject::resolveForExamDetail($examClassSubjectId, $examPartDetailId);
+                if (!$resolvedExamClassSubjectId) {
+                    continue;
+                }
                 Exam10MarksEntry::updateOrCreate(
                     [
                         'myclass_section_id' => $myclassSectionId,
                         'studentcr_id' => $studentId,
-                        'exam_class_subject_id' => $examClassSubjectId,
+                        'exam_class_subject_id' => $resolvedExamClassSubjectId,
                         'exam_detail_id' => $examPartDetailId,  // Use exam_detail_id instead of exam_part_id
                     ],
                     [

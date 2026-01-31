@@ -301,11 +301,15 @@ class Exam10ExamMarksEntryComp extends Component
                             $gradeId = 6;
                         }
                     }
+                    $resolvedExamClassSubjectId = \App\Models\Exam06ClassSubject::resolveForExamDetail($examClassSubjectId, $examPartId);
+                    if (!$resolvedExamClassSubjectId) {
+                        continue;
+                    }
                     Exam10MarksEntry::updateOrCreate(
                         [
                             'myclass_section_id' => $sectionId,
                             'studentcr_id' => $studentId,
-                            'exam_class_subject_id' => $examClassSubjectId,
+                            'exam_class_subject_id' => $resolvedExamClassSubjectId,
                             'exam_detail_id' => $examPartId
                         ],
                         [
