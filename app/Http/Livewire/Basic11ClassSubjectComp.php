@@ -9,209 +9,90 @@ use App\Models\Subject;
 use App\Models\School;
 use App\Models\Session;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Livewire\WithPagination;
+use Illuminate\Support\Facades\Auth;
 
 class Basic11ClassSubjectComp extends Component
 {
-    use WithPagination;
+    public $isEditMode = false;
 
-    public $name, $description, $order_index, $is_optional, $myclass_id, $subject_id, $school_id, $session_id, $user_id, $approved_by, $is_active, $is_finalized, $status, $remarks, $myclassSubjectId;
-    public $isOpen = 0;
-    public $search = '';
+    // We don't need pagination for the matrix view as we want to see the full grid
+    // But if there are too many subjects/classes, it might be heavy. 
+    // Assuming manageable size for now based on typical school setups.
 
     public function render()
     {
-        $myclasses = Myclass::all();
-        $subjects = Subject::all();
-        $schools = School::all();
-        $sessions = Session::all();
-        $users = User::all();
-        
-        $myclassSubjects = MyclassSubject::query();
-        
-        if ($this->search) {
-            $myclassSubjects->where(function($subQuery) {
-                $subQuery->where('name', 'like', '%' . $this->search . '%')
-                         ->orWhere('status', 'like', '%' . $this->search . '%')
-                         ->orWhere('remarks', 'like', '%' . $this->search . '%')
-                         ->orWhere('description', 'like', '%' . $this->search . '%');
-            });
-        }
+        // 1. Subjects ordered by subject_type DESC
+        // We join subject_types to order by the actual type name or just ID? 
+        // Prompt says "Arrange subjects by subject_type in descending order".
+        // Assuming subject_type_id or similar. 
+        // Let's assume sorting by subject_type_id desc is sufficient as per prompt.
+        $subjects = Subject::with('subjectType')
+            ->orderBy('subject_type_id', 'desc')
+            ->orderBy('name', 'asc') // Secondary sort for clean list
+            ->get();
 
-        $myclassSubjects = $myclassSubjects->paginate(10);
+        // 2. MyClasses as columns
+        $myclasses = Myclass::orderBy('order_index', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        // 3. Existing relationships
+        // We need a quick lookup.
+        // Format: [subject_id][myclass_id] = MyclassSubject instance or null
+        $matrix = [];
+        $existingRecords = MyclassSubject::all();
+
+        foreach ($existingRecords as $record) {
+            $matrix[$record->subject_id][$record->myclass_id] = $record;
+        }
 
         return view('livewire.basic11-class-subject-comp', [
-            'myclassSubjects' => $myclassSubjects ?? collect([]),
-            'myclasses' => $myclasses,
             'subjects' => $subjects,
-            'schools' => $schools,
-            'sessions' => $sessions,
-            'users' => $users
+            'myclasses' => $myclasses,
+            'matrix' => $matrix,
         ]);
     }
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    public function create()
+    public function toggleEditMode()
     {
-        $this->resetInputFields();
-        $this->openModal();
+        $this->isEditMode = !$this->isEditMode;
     }
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    private function resetInputFields()
+    public function updateMapping($subjectId, $myclassId, $isChecked)
     {
-        $this->name = '';
-        $this->description = '';
-        $this->order_index = null;
-        $this->is_optional = false;
-        $this->myclass_id = '';
-        $this->subject_id = '';
-        $this->school_id = '';
-        $this->session_id = '';
-        $this->user_id = '';
-        $this->approved_by = '';
-        $this->is_active = true;
-        $this->is_finalized = false;
-        $this->status = '';
-        $this->remarks = '';
-        $this->myclassSubjectId = null;
-    }
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    public function openModal()
-    {
-        $this->isOpen = true;
-    }
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    public function closeModal()
-    {
-        $this->isOpen = false;
-    }
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    public function store()
-    {
-        $this->validate([
-            'name' => 'required',
-            'description' => 'nullable|string',
-            'order_index' => 'nullable|integer',
-            'is_optional' => 'boolean',
-            'myclass_id' => 'nullable|integer',
-            'subject_id' => 'nullable|integer',
-            'school_id' => 'nullable|integer',
-            'session_id' => 'nullable|integer',
-            'user_id' => 'nullable|integer',
-            'approved_by' => 'nullable|integer',
-            'is_active' => 'boolean',
-            'is_finalized' => 'boolean',
-            'status' => 'nullable|string|max:255',
-            'remarks' => 'nullable|string',
-        ]);
-
-        if($this->myclassSubjectId){
-            // Update existing myclass subject
-            $myclassSubject = MyclassSubject::find($this->myclassSubjectId);
-            if($myclassSubject){
-                $myclassSubject->update([
-                    'name' => $this->name,
-                    'description' => $this->description ? $this->description : null,
-                    'order_index' => $this->order_index ? $this->order_index : null,
-                    'is_optional' => $this->is_optional,
-                    'myclass_id' => $this->myclass_id ? $this->myclass_id : null,
-                    'subject_id' => $this->subject_id ? $this->subject_id : null,
-                    'school_id' => $this->school_id ? $this->school_id : null,
-                    'session_id' => $this->session_id ? $this->session_id : null,
-                    'user_id' => $this->user_id ? $this->user_id : null,
-                    'approved_by' => $this->approved_by ? $this->approved_by : null,
-                    'is_active' => $this->is_active,
-                    'is_finalized' => $this->is_finalized,
-                    'status' => $this->status ? $this->status : null,
-                    'remarks' => $this->remarks ? $this->remarks : null,
-                ]);
-            }
-        } else {
-            // Create new myclass subject
-            MyclassSubject::create([
-                'name' => $this->name,
-                'description' => $this->description ? $this->description : null,
-                'order_index' => $this->order_index ? $this->order_index : null,
-                'is_optional' => $this->is_optional,
-                'myclass_id' => $this->myclass_id ? $this->myclass_id : null,
-                'subject_id' => $this->subject_id ? $this->subject_id : null,
-                'school_id' => $this->school_id ? $this->school_id : null,
-                'session_id' => $this->session_id ? $this->session_id : null,
-                'user_id' => $this->user_id ? $this->user_id : null,
-                'approved_by' => $this->approved_by ? $this->approved_by : null,
-                'is_active' => $this->is_active,
-                'is_finalized' => $this->is_finalized,
-                'status' => $this->status ? $this->status : null,
-                'remarks' => $this->remarks ? $this->remarks : null,
-            ]);
+        if (!$this->isEditMode) {
+            return;
         }
 
-        session()->flash('message', $this->myclassSubjectId ? 'Class Subject Updated Successfully.' : 'Class Subject Created Successfully.');
+        if ($isChecked) {
+            // Create
+            $subject = Subject::find($subjectId);
+            $myclass = Myclass::find($myclassId);
 
-        $this->closeModal();
-        $this->resetInputFields();
-    }
+            if ($subject && $myclass) {
+                MyclassSubject::updateOrCreate(
+                    [
+                        'subject_id' => $subjectId,
+                        'myclass_id' => $myclassId,
+                    ],
+                    [
+                        'name' => $myclass->name . ' - ' . $subject->name,
+                        'is_active' => true,
+                        // Set defaults for other required fields if any
+                        // Assuming optional/nullable fields can be null
+                    ]
+                );
+            }
+        } else {
+            // Delete
+            // Use query to find because we might not have the ID handy in the loop context easily without passing it
+            $record = MyclassSubject::where('subject_id', $subjectId)
+                ->where('myclass_id', $myclassId)
+                ->first();
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    public function edit($id)
-    {
-        $myclassSubject = MyclassSubject::findOrFail($id);
-        $this->myclassSubjectId = $id;
-        $this->name = $myclassSubject->name;
-        $this->description = $myclassSubject->description;
-        $this->order_index = $myclassSubject->order_index;
-        $this->is_optional = $myclassSubject->is_optional;
-        $this->myclass_id = $myclassSubject->myclass_id;
-        $this->subject_id = $myclassSubject->subject_id;
-        $this->school_id = $myclassSubject->school_id;
-        $this->session_id = $myclassSubject->session_id;
-        $this->user_id = $myclassSubject->user_id;
-        $this->approved_by = $myclassSubject->approved_by;
-        $this->is_active = $myclassSubject->is_active;
-        $this->is_finalized = $myclassSubject->is_finalized;
-        $this->status = $myclassSubject->status;
-        $this->remarks = $myclassSubject->remarks;
-
-        $this->openModal();
-    }
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    public function delete($id)
-    {
-        MyclassSubject::find($id)->delete();
-        session()->flash('message', 'Class Subject Deleted Successfully.');
+            if ($record) {
+                $record->delete();
+            }
+        }
     }
 }
