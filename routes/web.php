@@ -143,4 +143,8 @@ Route::get('/test-simple-component', function () {
 // require __DIR__ . '/test.php';
 
 
+// Exam Marks PDF Route
+Route::get('/exam-marks/pdf/{classId}', [App\Http\Controllers\ExamMarksPdfController::class, 'downloadMarksPdf'])
+    ->name('exam.exam12-exam-marks-register-pdf.pdf');
+
 require __DIR__ . '/auth.php';

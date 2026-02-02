@@ -180,6 +180,10 @@
 
 
 
+
+                @elseif($currentComponent === 'student.students_db')
+                    @livewire('student-db-component')
+
                 
                 
                 {{-- Exam Details Section --}}

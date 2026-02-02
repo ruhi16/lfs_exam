@@ -13,6 +13,7 @@ use App\Models\Exam03Part;
 use App\Models\Exam06ClassSubject;
 use App\Models\Exam10MarksEntry;
 use App\Models\MyclassSubject;
+use PDF;
 
 class Exam12ExamMarkRegisterComp extends Component
 {
@@ -232,6 +233,34 @@ class Exam12ExamMarkRegisterComp extends Component
         if (isset($this->classes[$this->activeTab])) {
             $this->loadMarksData($this->classes[$this->activeTab]->id);
         }
+    }
+
+    public function generatePdf()
+    {
+        $activeClass = isset($this->classes[$this->activeTab]) ? $this->classes[$this->activeTab] : null;
+
+        if (!$activeClass) {
+            session()->flash('error', 'No class selected for PDF generation.');
+            return;
+        }
+
+        $data = [
+            'activeClass' => $activeClass,
+            'sections' => $this->sections,
+            'students' => $this->students,
+            'examDetailsGrouped' => $this->examDetailsGrouped,
+            'classSubjects' => $this->classSubjects,
+            'examClassSubjectMap' => $this->examClassSubjectMap,
+            'marksData' => $this->marksData,
+        ];
+
+        $pdf = PDF::loadView('exports.exam12-pdf', $data, [], [
+            'orientation' => 'L'
+        ]);
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'exam-marks-' . \Illuminate\Support\Str::slug($activeClass->name) . '.pdf');
     }
 
     public function render()

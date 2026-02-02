@@ -6,6 +6,14 @@
             <p class="text-xs text-gray-600">Compact View</p>
         </div>
         <div>
+            @if($activeClass)
+                <a href="{{ route('exam.exam12-exam-marks-register-pdf.pdf', ['classId' => $activeClass->id]) }}" target="_blank"
+                   class="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded hover:bg-indigo-700 uppercase tracking-wider mr-2 inline-block text-center"
+                   style="text-decoration: none;">
+                    Download PDF
+                </a>
+            @endif
+
             @if(!$isEditing)
                 <button wire:click="updateMarks" 
                         class="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 uppercase tracking-wider">

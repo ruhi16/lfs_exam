@@ -88,6 +88,29 @@ class AdminDashboardContainerComp extends Component
             ]
         ],
         [
+            'name' => 'Student Management',
+            'component' => 'student.management-wall',
+            'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+            'submenu' => [
+                [
+                    'name' => 'Students DB',
+                    'component' => 'student.students_db'
+                ],
+                [
+                    'name' => 'Add New Student',
+                    'component' => 'student.student.create'
+                ],
+                [
+                    'name' => 'Student Roles',
+                    'component' => 'student.roles'
+                ],
+                [
+                    'name' => 'Permissions',
+                    'component' => 'student.permissions'
+                ]
+            ]
+        ],
+        [
             'name' => 'Exam Settings',
             'component' => 'exam_settings',
             'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
