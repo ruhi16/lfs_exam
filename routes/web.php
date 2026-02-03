@@ -95,7 +95,12 @@ Route::group(
     function () {
         Route::get('/dashboard', [App\Http\Controllers\SubAdminController::class, 'dashboard'])
             ->name('subAdminDash');
+        
+        Route::get('/marks-entry', \App\Http\Livewire\Subadmin10MarksEntryComp::class)
+            ->name('subadmin.marks-entry');
 
+        Route::get('/marks-entry/form/{distributionId}', \App\Http\Livewire\Subadmin10MarksEntryFormComp::class)
+            ->name('subadmin.marks-entry.form');
     }
 );
 

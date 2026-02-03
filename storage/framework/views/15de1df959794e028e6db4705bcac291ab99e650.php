@@ -235,7 +235,7 @@
                                                                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                                                             </select>
                                                                             
-                                                                            <button wire:click="saveDistribution(<?php echo e($section->id); ?>, <?php echo e($detail->id); ?>)"
+                                                                            <button wire:click="saveDistribution(<?php echo e($section->id); ?>, <?php echo e($detail->id); ?>, <?php echo e($ecs->id); ?>)"
                                                                                 class="inline-flex justify-center items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-sm">
                                                                                 Save
                                                                             </button>

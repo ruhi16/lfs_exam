@@ -135,6 +135,7 @@
             <div class="p-6 flex-1">
                 @if($currentComponent === 'dashboard')
                     {{-- @livewire('admin.dashboard-stats') --}}
+                    
 
                 {{-- Users Section --}}
                 @elseif($currentComponent === 'users.all')

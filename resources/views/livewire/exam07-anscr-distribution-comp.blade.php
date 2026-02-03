@@ -225,7 +225,7 @@
                                                                                 @endforeach
                                                                             </select>
                                                                             
-                                                                            <button wire:click="saveDistribution({{ $section->id }}, {{ $detail->id }})"
+                                                                            <button wire:click="saveDistribution({{ $section->id }}, {{ $detail->id }}, {{ $ecs->id }})"
                                                                                 class="inline-flex justify-center items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-sm">
                                                                                 Save
                                                                             </button>

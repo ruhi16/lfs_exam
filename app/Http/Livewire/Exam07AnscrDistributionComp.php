@@ -198,17 +198,18 @@ class Exam07AnscrDistributionComp extends Component
             ->groupBy('exam_name_id');
     }
 
-    public function saveDistribution($myclassSectionId, $examDetailId)
+    public function saveDistribution($myclassSectionId, $examDetailId, $examClassSubjectId)
     {
         Log::info('=== SAVE DISTRIBUTION DEBUG ===', [
             'myclassSectionId' => $myclassSectionId,
             'examDetailId' => $examDetailId,
+            'examClassSubjectId' => $examClassSubjectId,
             'full_formData' => $this->formData,
             'formData_keys' => array_keys($this->formData)
         ]);
 
         // Find the corresponding exam_class_subject_id
-        $examClassSubject = Exam06ClassSubject::where('exam_detail_id', $examDetailId)->first();
+        $examClassSubject = Exam06ClassSubject::find($examClassSubjectId);
 
         if (!$examClassSubject) {
             session()->flash('error', 'No exam class subject found for this exam detail.');
