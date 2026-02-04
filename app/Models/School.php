@@ -39,7 +39,9 @@ class School extends Model
     // ============================== end =====================================
 
 
-
+    public function activeSessions(){
+        return $this->hasMany(Session::class)->where('status', 'CURRENT');
+    }
 
 
     public function sessions(){

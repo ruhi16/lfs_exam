@@ -12,11 +12,9 @@ use App\Http\Livewire\About;
 use App\Http\Livewire\AdminStudentIdCardComp;
 use App\Http\Livewire\SubadminMarksEntryComponent;
 use App\Http\Livewire\SubadminMarksEntryEntityComponent;
+use App\Http\Livewire\UserDashboardContainerComp;
 use Illuminate\Support\Facades\Artisan;
 
-use Mpdf\Facades\MpdfFacade;
-use Mpdf\Laravel\PdfFacade;
-use Mpdf\PDF\PDF;
 
 
 
@@ -72,10 +70,12 @@ Route::group(
         Route::get('/dashboard', [App\Http\Controllers\AdminController::class, 'dashboard'])
             ->name('adminDash');
 
-        Route::get('/marks-entry/{exam_detail_id}/{myclass_section_id}/{myclass_subject_id}', 
-            [App\Http\Controllers\AdminController::class, 'marksEntry'])
+        Route::get(
+            '/marks-entry/{exam_detail_id}/{myclass_section_id}/{myclass_subject_id}',
+            [App\Http\Controllers\AdminController::class, 'marksEntry']
+        )
             ->name('marksEntryOld');
-        
+
         Route::get('/marks-entry', [App\Http\Controllers\AdminController::class, 'marksEntry'])
             ->name('marksEntry');
     }
@@ -95,7 +95,7 @@ Route::group(
     function () {
         Route::get('/dashboard', [App\Http\Controllers\SubAdminController::class, 'dashboard'])
             ->name('subAdminDash');
-        
+
         Route::get('/marks-entry', \App\Http\Livewire\Subadmin10MarksEntryComp::class)
             ->name('subadmin.marks-entry');
 
@@ -107,8 +107,19 @@ Route::group(
 Route::group(
     ['prefix' => 'user', 'middleware' => ['web', 'isUser']],
     function () {
-        Route::get('/dashboard', [App\Http\Controllers\UserController::class, 'dashboard'])
-            ->name('userDash');        
+        // Route::get('/dashboard', [App\Http\Controllers\UserController::class, 'dashboard'])
+        // Route::get('/dashboard', function () {
+        // return view('user-dashboard');
+        // return view('components.user-dashboard');
+        // return view('livewire.user-dashboard-container-comp');
+        // return view('livewire.user-dc-wall-comp');
+        // })->name('userDash');    
+        Route::get('/dashboard', UserDashboardContainerComp::class)
+            ->name('userDash');
+
+        Route::get('/profile', function () {
+            return view('user-profile');
+        })->name('user.profile');
     }
 );
 
@@ -152,4 +163,23 @@ Route::get('/test-simple-component', function () {
 Route::get('/exam-marks/pdf/{classId}', [App\Http\Controllers\ExamMarksPdfController::class, 'downloadMarksPdf'])
     ->name('exam.exam12-exam-marks-register-pdf.pdf');
 
+// Student Mark Sheet PDF Route (individual)
+Route::get('/student-mark-sheet/pdf/{studentId}', [App\Http\Controllers\ExamMarksPdfController::class, 'downloadStudentMarksheetPdf'])
+    ->name('exam.student-marksheet-pdf');
+
+// Annual Mark Sheet PDF Route (individual)
+Route::get('/annual-marks-sheet/pdf/{studentId}', [App\Http\Controllers\ExamMarksPdfController::class, 'downloadAnnualMarksheetPdf'])
+    ->name('exam.annual-marksheet-pdf');
+
+
+
+// Health check endpoint
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'php' => PHP_VERSION,
+        'laravel' => app()->version(),
+        'time' => now()->toIso8601String(),
+    ]);
+});
 require __DIR__ . '/auth.php';

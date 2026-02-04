@@ -28,14 +28,14 @@ class SupadminDcUsersComp extends Component
     public function getUsers()
     {
         $query = User::with(['role', 'teacher', 'studentdb'])->orderBy('id', 'desc');
-        
+
         if (!empty($this->search)) {
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('email', 'like', '%' . $this->search . '%');
+                    ->orWhere('email', 'like', '%' . $this->search . '%');
             });
         }
-        
+
         return $query->latest()->paginate(10);
     }
 
@@ -123,6 +123,10 @@ class SupadminDcUsersComp extends Component
 
     public function edit($id)
     {
+        if ($id <= 5) {
+            session()->flash('message', 'Protected system user cannot be edited.');
+            return;
+        }
         $user = User::findOrFail($id);
         $this->user_id = $id;
         $this->name = $user->name;
@@ -138,6 +142,10 @@ class SupadminDcUsersComp extends Component
 
     public function delete($id)
     {
+        if ($id <= 5) {
+            session()->flash('message', 'Protected system user cannot be deleted.');
+            return;
+        }
         User::find($id)->delete();
         session()->flash('message', 'User Deleted Successfully.');
     }

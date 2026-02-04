@@ -94,6 +94,52 @@
             </div>
         </div>
 
+        <!-- Class & Section-wise Students -->
+        <div class="bg-white rounded border overflow-hidden mb-6">
+            <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-sm font-medium text-gray-900">Class & Section-wise Students</h3>
+                <div class="text-xs text-gray-500">Class: {{ $activeClass->name }}</div>
+            </div>
+            @if($classSections->count() > 0)
+                @foreach($classSections as $sec)
+                    @php
+                        $sectionStudents = $students->where('section_id', $sec->section_id);
+                        if($sectionStudents->isEmpty()) continue;
+                    @endphp
+                    <div class="px-4 py-2 border-b">
+                        <div class="text-xs font-semibold text-gray-700">Section: {{ $sec->section->name ?? 'N/A' }}</div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-xs">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Roll</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Student Name</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach($sectionStudents as $stu)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-3 py-2 text-gray-700">{{ $stu->roll_no ?? 'N/A' }}</td>
+                                        <td class="px-3 py-2 text-gray-900">{{ $stu->studentdb->name ?? 'N/A' }}</td>
+                                        <td class="px-3 py-2">
+                                            <a href="{{ route('exam.student-marksheet-pdf', ['studentId' => $stu->id]) }}" target="_blank"
+                                               class="inline-block px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                                                Download Mark Sheet
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endforeach
+            @else
+                <div class="p-6 text-center text-gray-500 text-sm">No sections found for this class.</div>
+            @endif
+        </div>
+
         <!-- Tables: Summative and Formative -->
         @php
             $summativeType = $subjectTypes->firstWhere('name', 'Summative');
