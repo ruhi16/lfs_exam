@@ -81,4 +81,14 @@ class Exam05Detail extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'approved_by');
     }
+
+    public function ansscr_dists()
+    {
+        return $this->hasMany(Exam07AnsscrDist::class, 'exam_detail_id');
+    }
+
+    public function marks_entries()
+    {
+        return $this->hasMany(Exam10MarksEntry::class, 'exam_detail_id');
+    }
 }

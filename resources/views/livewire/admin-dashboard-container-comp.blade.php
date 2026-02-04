@@ -134,12 +134,11 @@
             <!-- Dynamic Content Area -->
             <div class="p-6 flex-1">
                 @if($currentComponent === 'dashboard')
-                    {{-- @livewire('admin.dashboard-stats') --}}
-                    
+                    @livewire('admin-dc-dashboard-comp')
 
                 {{-- Users Section --}}
                 @elseif($currentComponent === 'users.all')
-                    @livewire('supadmin-d-c-users-comp')
+                    @livewire('supadmin-dc-users-comp')
                 
 
 

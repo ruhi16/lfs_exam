@@ -9,7 +9,7 @@ use App\Models\Teacher;
 use App\Models\Studentdb;
 use Illuminate\Support\Facades\Hash;
 
-class SupadminDCUsersComp extends Component
+class SupadminDcUsersComp extends Component
 {
     protected $users;
     public $roles, $teachers, $students;
@@ -41,7 +41,7 @@ class SupadminDCUsersComp extends Component
 
     public function render()
     {
-        return view('livewire.supadmin-d-c-users-comp', [
+        return view('livewire.supadmin-dc-users-comp', [
             'users' => $this->getUsers()
         ]);
     }

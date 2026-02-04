@@ -33,7 +33,7 @@ class Teacher extends Model
     protected static function booted()
     {
         static::addGlobalScope('activeTeacher', function ($builder) {
-            $builder->where('id', '>', 5);
+            $builder->where('teachers.id', '>', 5);
         });
     }
 

@@ -134,22 +134,36 @@
             <!-- Dynamic Content Area -->
             <div class="p-6 flex-1">
                 <?php if($currentComponent === 'dashboard'): ?>
-                    
-
-                
-                <?php elseif($currentComponent === 'users.all'): ?>
                     <?php
 if (! isset($_instance)) {
-    $html = \Livewire\Livewire::mount('supadmin-d-c-users-comp')->html();
+    $html = \Livewire\Livewire::mount('admin-dc-dashboard-comp')->html();
 } elseif ($_instance->childHasBeenRendered('l2091979430-0')) {
     $componentId = $_instance->getRenderedChildComponentId('l2091979430-0');
     $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-0');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
     $_instance->preserveRenderedChild('l2091979430-0');
 } else {
-    $response = \Livewire\Livewire::mount('supadmin-d-c-users-comp');
+    $response = \Livewire\Livewire::mount('admin-dc-dashboard-comp');
     $html = $response->html();
     $_instance->logRenderedChild('l2091979430-0', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+}
+echo $html;
+?>
+
+                
+                <?php elseif($currentComponent === 'users.all'): ?>
+                    <?php
+if (! isset($_instance)) {
+    $html = \Livewire\Livewire::mount('supadmin-dc-users-comp')->html();
+} elseif ($_instance->childHasBeenRendered('l2091979430-1')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-1');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-1');
+    $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
+    $_instance->preserveRenderedChild('l2091979430-1');
+} else {
+    $response = \Livewire\Livewire::mount('supadmin-dc-users-comp');
+    $html = $response->html();
+    $_instance->logRenderedChild('l2091979430-1', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -162,15 +176,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('admin-dc-basic-wall-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-1')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-1');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-1');
+} elseif ($_instance->childHasBeenRendered('l2091979430-2')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-2');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-2');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-1');
+    $_instance->preserveRenderedChild('l2091979430-2');
 } else {
     $response = \Livewire\Livewire::mount('admin-dc-basic-wall-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-1', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-2', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -180,15 +194,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('basic01-school-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-2')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-2');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-2');
+} elseif ($_instance->childHasBeenRendered('l2091979430-3')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-3');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-3');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-2');
+    $_instance->preserveRenderedChild('l2091979430-3');
 } else {
     $response = \Livewire\Livewire::mount('basic01-school-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-2', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-3', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -198,15 +212,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('basic02-session-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-3')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-3');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-3');
+} elseif ($_instance->childHasBeenRendered('l2091979430-4')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-4');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-4');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-3');
+    $_instance->preserveRenderedChild('l2091979430-4');
 } else {
     $response = \Livewire\Livewire::mount('basic02-session-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-3', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-4', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -217,15 +231,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('basic03-class-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-4')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-4');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-4');
+} elseif ($_instance->childHasBeenRendered('l2091979430-5')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-5');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-5');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-4');
+    $_instance->preserveRenderedChild('l2091979430-5');
 } else {
     $response = \Livewire\Livewire::mount('basic03-class-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-4', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-5', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -235,15 +249,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('basic04-section-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-5')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-5');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-5');
+} elseif ($_instance->childHasBeenRendered('l2091979430-6')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-6');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-6');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-5');
+    $_instance->preserveRenderedChild('l2091979430-6');
 } else {
     $response = \Livewire\Livewire::mount('basic04-section-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-5', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-6', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -253,15 +267,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('basic06-subject-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-6')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-6');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-6');
+} elseif ($_instance->childHasBeenRendered('l2091979430-7')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-7');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-7');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-6');
+    $_instance->preserveRenderedChild('l2091979430-7');
 } else {
     $response = \Livewire\Livewire::mount('basic06-subject-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-6', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-7', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -270,15 +284,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('basic07-teacher-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-7')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-7');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-7');
+} elseif ($_instance->childHasBeenRendered('l2091979430-8')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-8');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-8');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-7');
+    $_instance->preserveRenderedChild('l2091979430-8');
 } else {
     $response = \Livewire\Livewire::mount('basic07-teacher-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-7', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-8', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -288,15 +302,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('basic10-class-section-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-8')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-8');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-8');
+} elseif ($_instance->childHasBeenRendered('l2091979430-9')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-9');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-9');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-8');
+    $_instance->preserveRenderedChild('l2091979430-9');
 } else {
     $response = \Livewire\Livewire::mount('basic10-class-section-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-8', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-9', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -305,15 +319,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('basic11-class-subject-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-9')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-9');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-9');
+} elseif ($_instance->childHasBeenRendered('l2091979430-10')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-10');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-10');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-9');
+    $_instance->preserveRenderedChild('l2091979430-10');
 } else {
     $response = \Livewire\Livewire::mount('basic11-class-subject-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-9', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-10', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -325,15 +339,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('student-db-component')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-10')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-10');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-10');
+} elseif ($_instance->childHasBeenRendered('l2091979430-11')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-11');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-11');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-10');
+    $_instance->preserveRenderedChild('l2091979430-11');
 } else {
     $response = \Livewire\Livewire::mount('student-db-component');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-10', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-11', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -345,15 +359,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam05-exam-detail-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-11')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-11');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-11');
+} elseif ($_instance->childHasBeenRendered('l2091979430-12')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-12');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-12');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-11');
+    $_instance->preserveRenderedChild('l2091979430-12');
 } else {
     $response = \Livewire\Livewire::mount('exam05-exam-detail-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-11', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-12', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -362,15 +376,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam06-exam-fmpm-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-12')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-12');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-12');
+} elseif ($_instance->childHasBeenRendered('l2091979430-13')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-13');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-13');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-12');
+    $_instance->preserveRenderedChild('l2091979430-13');
 } else {
     $response = \Livewire\Livewire::mount('exam06-exam-fmpm-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-12', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-13', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -380,15 +394,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam01-exam-name-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-13')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-13');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-13');
+} elseif ($_instance->childHasBeenRendered('l2091979430-14')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-14');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-14');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-13');
+    $_instance->preserveRenderedChild('l2091979430-14');
 } else {
     $response = \Livewire\Livewire::mount('exam01-exam-name-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-13', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-14', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -399,15 +413,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam02-exam-type-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-14')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-14');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-14');
+} elseif ($_instance->childHasBeenRendered('l2091979430-15')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-15');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-15');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-14');
+    $_instance->preserveRenderedChild('l2091979430-15');
 } else {
     $response = \Livewire\Livewire::mount('exam02-exam-type-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-14', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-15', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -417,15 +431,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam03-exam-part-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-15')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-15');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-15');
+} elseif ($_instance->childHasBeenRendered('l2091979430-16')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-16');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-16');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-15');
+    $_instance->preserveRenderedChild('l2091979430-16');
 } else {
     $response = \Livewire\Livewire::mount('exam03-exam-part-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-15', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-16', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -435,15 +449,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam04-exam-mode-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-16')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-16');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-16');
+} elseif ($_instance->childHasBeenRendered('l2091979430-17')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-17');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-17');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-16');
+    $_instance->preserveRenderedChild('l2091979430-17');
 } else {
     $response = \Livewire\Livewire::mount('exam04-exam-mode-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-16', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-17', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -455,15 +469,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam06-exam-myclass-subject-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-17')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-17');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-17');
+} elseif ($_instance->childHasBeenRendered('l2091979430-18')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-18');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-18');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-17');
+    $_instance->preserveRenderedChild('l2091979430-18');
 } else {
     $response = \Livewire\Livewire::mount('exam06-exam-myclass-subject-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-17', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-18', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -475,15 +489,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam09-exam-schedule-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-18')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-18');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-18');
+} elseif ($_instance->childHasBeenRendered('l2091979430-19')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-19');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-19');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-18');
+    $_instance->preserveRenderedChild('l2091979430-19');
 } else {
     $response = \Livewire\Livewire::mount('exam09-exam-schedule-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-18', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-19', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -494,15 +508,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('marks-entry-wall-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-19')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-19');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-19');
+} elseif ($_instance->childHasBeenRendered('l2091979430-20')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-20');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-20');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-19');
+    $_instance->preserveRenderedChild('l2091979430-20');
 } else {
     $response = \Livewire\Livewire::mount('marks-entry-wall-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-19', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-20', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>                
@@ -512,15 +526,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam07-anscr-distribution-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-20')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-20');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-20');
+} elseif ($_instance->childHasBeenRendered('l2091979430-21')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-21');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-21');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-20');
+    $_instance->preserveRenderedChild('l2091979430-21');
 } else {
     $response = \Livewire\Livewire::mount('exam07-anscr-distribution-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-20', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-21', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -530,15 +544,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam10-exam-marks-entry-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-21')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-21');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-21');
+} elseif ($_instance->childHasBeenRendered('l2091979430-22')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-22');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-22');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-21');
+    $_instance->preserveRenderedChild('l2091979430-22');
 } else {
     $response = \Livewire\Livewire::mount('exam10-exam-marks-entry-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-21', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-22', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -548,15 +562,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam12-exam-mark-register-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-22')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-22');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-22');
+} elseif ($_instance->childHasBeenRendered('l2091979430-23')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-23');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-23');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-22');
+    $_instance->preserveRenderedChild('l2091979430-23');
 } else {
     $response = \Livewire\Livewire::mount('exam12-exam-mark-register-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-22', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-23', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -567,15 +581,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam15-teacher-marks-entry-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-23')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-23');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-23');
+} elseif ($_instance->childHasBeenRendered('l2091979430-24')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-24');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-24');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-23');
+    $_instance->preserveRenderedChild('l2091979430-24');
 } else {
     $response = \Livewire\Livewire::mount('exam15-teacher-marks-entry-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-23', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-24', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -584,15 +598,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam20-student-mark-sheet-indv-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-24')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-24');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-24');
+} elseif ($_instance->childHasBeenRendered('l2091979430-25')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-25');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-25');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-24');
+    $_instance->preserveRenderedChild('l2091979430-25');
 } else {
     $response = \Livewire\Livewire::mount('exam20-student-mark-sheet-indv-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-24', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-25', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
@@ -601,15 +615,15 @@ echo $html;
                     <?php
 if (! isset($_instance)) {
     $html = \Livewire\Livewire::mount('exam20-student-mark-sheet-indv2-comp')->html();
-} elseif ($_instance->childHasBeenRendered('l2091979430-25')) {
-    $componentId = $_instance->getRenderedChildComponentId('l2091979430-25');
-    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-25');
+} elseif ($_instance->childHasBeenRendered('l2091979430-26')) {
+    $componentId = $_instance->getRenderedChildComponentId('l2091979430-26');
+    $componentTag = $_instance->getRenderedChildComponentTagName('l2091979430-26');
     $html = \Livewire\Livewire::dummyMount($componentId, $componentTag);
-    $_instance->preserveRenderedChild('l2091979430-25');
+    $_instance->preserveRenderedChild('l2091979430-26');
 } else {
     $response = \Livewire\Livewire::mount('exam20-student-mark-sheet-indv2-comp');
     $html = $response->html();
-    $_instance->logRenderedChild('l2091979430-25', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
+    $_instance->logRenderedChild('l2091979430-26', $response->id(), \Livewire\Livewire::getRootElementTagName($html));
 }
 echo $html;
 ?>
