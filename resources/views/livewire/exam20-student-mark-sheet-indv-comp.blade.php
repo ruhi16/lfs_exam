@@ -91,6 +91,14 @@
                         </div>
                     @endif
                 </div>
+                <div class="mt-3">
+                    @if($selectedStudentId)
+                        <a href="{{ route('exam.student-marksheet-pdf', ['studentId' => $selectedStudentId]) }}" target="_blank"
+                           class="inline-block px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-xs">
+                            Download PDF
+                        </a>
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -98,9 +106,11 @@
         @php
             $summativeType = $subjectTypes->firstWhere('name', 'Summative');
             $formativeType = $subjectTypes->firstWhere('name', 'Formative');
+            $summativeExamType = $examTypes->firstWhere('name', 'Summative');
         @endphp
-
+        @if(false)
         @foreach([['label' => 'Summative', 'type' => $summativeType], ['label' => 'Formative', 'type' => $formativeType]] as $block)
+
             @php
                 $typeId = $block['type']->id ?? null;
                 $classSubjectsOfType = $typeId ? ($groupedClassSubjects[$typeId] ?? collect()) : collect();
@@ -395,6 +405,98 @@
                 </div>
             @endif
         @endforeach
+        @endif
+        @if($selectedStudentId)
+            <div class="bg-white rounded border overflow-hidden mb-6">
+                <div class="px-4 py-2 border-b text-sm font-medium text-gray-800">Student Mark Sheet</div>
+                <div class="px-4 py-2 text-xs text-gray-700">
+                    <div class="font-semibold">{{ $school->name ?? '' }}</div>
+                    <div>Class: {{ $activeClass->name }}</div>
+                    @php $stuRow = $students->firstWhere('id', $selectedStudentId); @endphp
+                    <div>Name: {{ $stuRow->studentdb->name ?? 'N/A' }}</div>
+                    <div>Roll: {{ $stuRow->roll_no ?? 'N/A' }}</div>
+                    <div>Section: {{ optional($stuRow->section)->name ?? 'N/A' }}</div>
+                </div>
+                @php
+                    $examDetailsByName = $examDetailsGrouped;
+                @endphp
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs border border-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left border border-gray-300">Subject</th>
+                                @foreach($examDetailsByName as $examNameId => $detailsCollection)
+                                    @php
+                                        $examName = $examNames->firstWhere('id', $examNameId);
+                                        $colspan = $detailsCollection->groupBy('exam_part_id')->count();
+                                    @endphp
+                                    <th colspan="{{ $colspan }}" class="px-3 py-2 text-center border border-gray-300">
+                                        {{ $examName->name ?? 'Exam' }}
+                                    </th>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <th class="px-3 py-2 text-left border border-gray-300">-</th>
+                                @foreach($examDetailsByName as $examNameId => $detailsCollection)
+                                    @foreach($detailsCollection->groupBy('exam_part_id') as $examPartId => $partDetails)
+                                        @php
+                                            $examPartObj = $examParts->firstWhere('id', $examPartId);
+                                            $firstDetail = $partDetails->first();
+                                        @endphp
+                                        <th class="px-2 py-1 text-center border border-gray-300">
+                                            <div class="text-[10px] text-gray-600">{{ $examPartObj->name ?? 'Part' }}</div>
+                                            <div class="text-[10px] text-gray-500">{{ optional($firstDetail->examMode)->name ?? 'Mode' }}</div>
+                                        </th>
+                                    @endforeach
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php
+                                $classSubjects = collect($groupedClassSubjects)->flatten(1);
+                            @endphp
+                            @foreach($classSubjects as $ms)
+                                <tr>
+                                    <td class="px-3 py-2 text-left border border-gray-300">
+                                        <div>{{ optional($ms->subject)->name ?? 'Subject' }}</div>
+                                        <div class="text-[10px] text-gray-500">{{ optional($ms->subject)->code }}</div>
+                                    </td>
+                                    @foreach($examDetailsByName as $examNameId => $detailsCollection)
+                                        @foreach($detailsCollection->groupBy('exam_part_id') as $examPartId => $partDetails)
+                                            @php
+                                                $selectedDetail = $partDetails->first(function($d){
+                                                    return optional($d->examType)->name === 'Summative';
+                                                }) ?? $partDetails->first();
+                                                $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) : null;
+                                                $entry = $mapping ? ($marksMap[$mapping['id']] ?? null) : null;
+                                            @endphp
+                                            <td class="px-3 py-2 text-center border border-gray-300">
+                                                @if($mapping)
+                                                    @if(isset($entry['is_absent']) && $entry['is_absent'])
+                                                        <span class="text-red-600 font-semibold">AB</span>
+                                                    @elseif(isset($entry['marks']) && $entry['marks'] !== null)
+                                                        <span class="font-semibold">{{ $entry['marks'] }}</span>
+                                                        <div class="text-[10px] text-gray-500">FM: {{ $mapping['full_marks'] ?? '-' }}</div>
+                                                    @else
+                                                        <span class="text-gray-400">-</span>
+                                                    @endif
+                                                    <div class="text-[10px] text-gray-400">ECS: {{ $mapping['id'] }}</div>
+                                                @else
+                                                    <span class="text-gray-400">N/A</span>
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-4 py-2 text-[10px] text-gray-500">
+                    This marksheet is system generated and valid without signature.
+                </div>
+            </div>
+        @endif
         @php
             $overallMarks = 0; $overallFull = 0;
             if(isset($summativeType)){

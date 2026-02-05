@@ -41,7 +41,7 @@ class SupadminDcUsersComp extends Component
 
     public function render()
     {
-        return view('livewire.supadmin-dc-users-comp', [
+        return view('livewire.supadmin-dc-users-comp2', [
             'users' => $this->getUsers()
         ]);
     }

@@ -172,6 +172,11 @@ Route::get('/annual-marks-sheet/pdf/{studentId}', [App\Http\Controllers\ExamMark
     ->name('exam.annual-marksheet-pdf');
 
 
+Route::get('/annual-marks-sheet/pdf/{studentId}', [App\Http\Controllers\ExamMarksPdfController::class, 'downloadAnnualMarksheetPdf2'])
+    // ->name('exam.annual-marksheet-pdf')
+    ;
+
+
 
 // Health check endpoint
 Route::get('/health', function () {
