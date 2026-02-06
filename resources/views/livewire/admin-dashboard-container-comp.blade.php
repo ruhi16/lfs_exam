@@ -220,7 +220,10 @@
 
 
                 @elseif($currentComponent === 'exam.exam_schedule')
-                    @livewire('exam09-exam-schedule-comp')
+                    {{-- @livewire('exam09-exam-schedule-comp') --}}
+
+                @elseif($currentComponent === 'exam.exam_settings')
+                    @livewire('exam14-exam-settings-comp')
 
 
 
