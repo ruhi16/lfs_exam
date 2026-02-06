@@ -29,62 +29,29 @@
     </div>
 
     <div class="student-container">
-        <div class="student-left-part">
-            @if($student)
-                <div><strong>Name:</strong> {{ $student->studentdb->name ?? 'N/A' }} </div> 
-                <div><strong>Class:</strong> {{ $student->myClass->name ?? 'N/A' }} |                     |
-                    <strong>Section:</strong> {{ optional($student->section)->name ?? 'N/A' }}  |
-                    <strong>Roll:</strong> {{ $student->roll_no ?? 'N/A' }} </div>
-            @endif
-        </div>
-        {{-- <div class="student-right-part">
-            <div>Hello</div>    
-            <div style="display: flex; gap: 20px; align-items: center; justify-content: center; flex-wrap: wrap;">
-            <!-- Profile Image -->
-                <div style="text-align: center;">
-                    <div style="margin-bottom: 5px; font-size: 0.9em;">Profile</div>
-                    <div style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; background-color: #fff; display: flex; align-items: center; justify-content: center;">
-                        @if($student && $student->studentdb && $student->studentdb->profile_image)
-                            <img src="{{ asset('storage/' . $student->studentdb->profile_image) }}" 
-                                alt="Profile" 
-                                style="width: 100%; height: 100%; object-fit: cover;">
+        <table>
+            <tbody>
+                <tr>
+                    <td style="text-align: left; font-size: 16px;">
+                    @if($student)
+                        <div><strong>Name:</strong> {{ $student->studentdb->name ?? 'N/A' }} </div> 
+                        <div><strong>Class:</strong> {{ $student->myClass->name ?? 'N/A' }} | 
+                            <strong>Section:</strong> {{ optional($student->section)->name ?? 'N/A' }}  |
+                            <strong>Roll:</strong> {{ $student->roll_no ?? 'N/A' }} </div>
+                    @endif
+                    </td>
+                    <td style="text-align: left;">
+                        {{-- @if($student && $student->studentdb && $student->studentdb->img_ref_profile)
+                            <img class="profile-box" src="{{ asset('storage/' . $student->studentdb->img_ref_profile) }}"alt="Profile" style="width: 40px; height: 40px;object-fit: cover;">
                         @else
-                            <div style="color: #583434; font-size: 0.8em;">No Image</div>
-                        @endif
-                    </div>
-                </div>
-            
-                <!-- QR Code -->
-                <div style="text-align: center;">
-                    <div style="margin-bottom: 5px; font-size: 0.9em;">QR Code</div>
-                    <div style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; background-color: #fff; display: flex; align-items: center; justify-content: center;">
-                        @if($student && $student->qr_code)
-                            <img src="{{ $student->qr_code }}" 
-                                alt="QR Code" 
-                                style="width: 100%; height: 100%; object-fit: contain; padding: 5px;">
-                        @else
-                            <div style="color: #583434; font-size: 0.8em;">No QR</div>
-                        @endif
-                    </div>
-                </div>
-            </div>    
-            
-        </div> --}}
+                            <div class="profile-box no-image">{{ asset('storage/' . $student->studentdb->img_ref_profile) ?? 'N/A' }}</div>
+                        @endif --}}
+                    </td>
+                    
+                </tr>
+            </thead>
+        </table>            
     </div>
-
-    
-    {{-- <div>
-        <h2>Student Mark Sheet</h2>
-        @if($activeClass)
-            <div><strong>Class:</strong> {{ $activeClass->name }}</div>
-        @endif
-        @if($student)
-            <div><strong>Name:</strong> {{ $student->studentdb->name ?? 'N/A' }}</div>
-            <div><strong>Roll:</strong> {{ $student->roll_no ?? 'N/A' }}</div>
-            <div><strong>Section:</strong> {{ optional($student->section)->name ?? 'N/A' }}</div>
-        @endif
-    </div> --}}
-
     @php
         // Count total columns for exam parts across all exam names
         $totalExamCols = 0;
@@ -106,7 +73,7 @@
 
     @if($summativeSubjects->count())
         <div class="section-title">Summative Subjects</div>
-        <table>
+        <table class="no-break">
             <thead>
                 <tr>
                     <th class="text-left">Subject</th>
@@ -170,7 +137,6 @@
                                                 $subjectGrandFull += $fm;
                                             @endphp
                                             <span style="font-weight: bold;">{{ $rounded }}</span>
-                                            <div class="muted">FM: {{ $mapping['full_marks'] ?? '-' }}</div>
                                         @else
                                             -
                                         @endif
@@ -205,7 +171,7 @@
 
     @if($formativeSubjects->count())
         <div class="section-title">Formative Subjects</div>
-        <table>
+        <table class="no-break">
             <thead>
                 <tr>
                     <th class="text-left">Subject</th>
@@ -281,7 +247,6 @@
                                                 $gradeF = $fmF > 0 ? \App\Models\Exam08Grade::calculateGrade($roundedF, 'formative', $ms->subject_id, $fmF) : '';
                                             @endphp
                                             <span style="font-weight: bold;">{{ $roundedF }}</span>@if($gradeF) <span class="muted">({{ $gradeF }})</span>@endif
-                                            <div class="muted">FM: {{ $mapping['full_marks'] ?? '-' }}</div>
                                         @else
                                             -
                                         @endif
@@ -297,7 +262,7 @@
         </table>
     @endif
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
         <div>
             <div class="section-title">Overall Result</div>
             <table>
@@ -339,15 +304,8 @@
             </table>
         </div>
         <div>
-            <div class="section-title">Signature</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Student</th>
-                        <th>Class Teacher</th>
-                        <th>Principal</th>
-                    </tr>
-                </thead>
+            {{-- <div class="section-title">Signature</div> --}}
+            <table>                
                 <tbody>
                     <tr>
                         <td style="height: 40px;"></td>
@@ -355,10 +313,17 @@
                         <td></td>
                     </tr>
                 </tbody>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Class Teacher</th>
+                        <th>Principal</th>
+                    </tr>
+                </thead>
             </table>
         </div>
     </div>
 
-    <div class="muted">This marksheet is system generated and valid without signature.</div>
+    {{-- <div class="muted">This marksheet is system generated and valid without signature.</div> --}}
 </body>
 </html>

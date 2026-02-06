@@ -97,7 +97,7 @@ class ExamMarksPdfController extends Controller
             'marksData' => $marksData,
         ];
 
-        $pdf = PDF::loadView('exports.exam12-exam-marks-register-pdf', $data, [], [
+        $pdf = \PDF::loadView('exports.exam12-exam-marks-register-pdf', $data, [], [
             'orientation' => 'L'
         ]);
 
