@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\School;
+
 use App\Models\MyclassSection;
 use App\Models\Myclass;
 use App\Models\Section;
@@ -104,24 +106,24 @@ class ExamMarksPdfController extends Controller
 
     public function downloadStudentMarksheetPdf($studentId)
     {
-        $student = \App\Models\Studentcr::with(['studentdb', 'myclass', 'section'])->find($studentId);
+        $student = Studentcr::with(['studentdb', 'myclass', 'section'])->find($studentId);
         if (!$student) {
             return redirect()->back()->with('error', 'Student not found.');
         }
         $classId = $student->myclass_id;
-        $activeClass = \App\Models\Myclass::find($classId);
-        $school = \App\Models\School::orderBy('id')->first();
-        $sections = \App\Models\MyclassSection::where('myclass_id', $classId)
+        $activeClass = Myclass::find($classId);
+        $school = School::orderBy('id')->first();
+        $sections = MyclassSection::where('myclass_id', $classId)
             ->with('section')
             ->orderBy('section_id')
             ->get();
-        $classSubjects = \App\Models\MyclassSubject::where('myclass_id', $classId)
+        $classSubjects = MyclassSubject::where('myclass_id', $classId)
             ->with(['subject.subjectType'])
             ->get()
             ->sortByDesc(function ($ms) {
                 return $ms->subject->subject_type_id ?? 0;
             });
-        $examDetails = \App\Models\Exam05Detail::where('myclass_id', $classId)
+        $examDetails = Exam05Detail::where('myclass_id', $classId)
             ->with(['examName', 'examPart', 'examType', 'examMode'])
             ->orderBy('exam_name_id')
             ->orderBy('exam_part_id')
@@ -130,7 +132,7 @@ class ExamMarksPdfController extends Controller
         foreach ($examDetails as $detail) {
             $examDetailsGrouped[$detail->exam_name_id][$detail->exam_part_id][] = $detail;
         }
-        $ecs = \App\Models\Exam06ClassSubject::where('myclass_id', $classId)->get();
+        $ecs = Exam06ClassSubject::where('myclass_id', $classId)->get();
         $examClassSubjectMap = [];
         foreach ($ecs as $item) {
             $examClassSubjectMap[$item->exam_detail_id][$item->subject_id] = [
@@ -140,7 +142,7 @@ class ExamMarksPdfController extends Controller
             ];
         }
         $marksData = [];
-        $entries = \App\Models\Exam10MarksEntry::where('studentcr_id', $studentId)->get();
+        $entries = Exam10MarksEntry::where('studentcr_id', $studentId)->get();
         foreach ($entries as $entry) {
             $marksData[$entry->exam_class_subject_id] = [
                 'exam_marks' => $entry->exam_marks,
