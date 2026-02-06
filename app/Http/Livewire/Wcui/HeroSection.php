@@ -9,7 +9,7 @@ class HeroSection extends Component
     public $currentSlide = 0;
     public $slides = [
         [
-            'title' => 'Welcome to Little Stars Nursery',
+            'title' => 'Welcome to Little Flowers Nursery',
             'subtitle' => 'Where Learning Begins with Love',
             'description' => 'Nurturing young minds in a safe, caring environment with quality English medium education.',
             'image' => '/images/hero-1.jpg'
@@ -26,6 +26,11 @@ class HeroSection extends Component
             'description' => 'Qualified educators dedicated to each child\'s individual growth and development.',
             'image' => '/images/hero-3.jpg'
         ]
+    ];
+    protected $listeners = [
+        'nextSlide' => 'nextSlide',
+        'prevSlide' => 'prevSlide',
+        'goToSlide' => 'goToSlide',
     ];
 
     public function mount()
