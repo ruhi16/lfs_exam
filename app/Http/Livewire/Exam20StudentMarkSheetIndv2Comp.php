@@ -245,7 +245,7 @@ class Exam20StudentMarkSheetIndv2Comp extends Component
 
     public function render()
     {
-        return view('livewire.exam20-student-mark-sheet-indv-comp', [
+        return view('livewire.exam20-student-mark-sheet-indv2-comp', [
             'classes' => $this->classes,
             'sections' => $this->sections,
             'students' => $this->students,

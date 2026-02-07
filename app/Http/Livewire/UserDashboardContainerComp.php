@@ -94,6 +94,8 @@ class UserDashboardContainerComp extends Component
         if (!$user) return;
         if (!$user->is_requested) return;
         $user->is_requested = false;
+        $user->teacher_id = 0;
+        
         $user->save();
         $this->dispatchBrowserEvent('notify', ['type' => 'success', 'message' => 'Teacher request revoked.']);
     }

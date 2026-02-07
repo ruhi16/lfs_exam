@@ -116,7 +116,7 @@
                     </div>
                     @endunless
 
-                    {{-- Student ribbon --}}
+                    {{-- Student ribbonis_Teacher: {{ $isTeacherRequestActive ? 'T' : 'F' }} - is_Student: {{ $isStudent ? 'T' : 'F' }} --}}
                     @if(!$isTeacherRequestActive && !$isStudent)
                     <div class="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-xl p-4 shadow-sm">
                         <div class="flex items-center justify-between mb-3">
@@ -211,7 +211,7 @@
                     @endif
                 </div>
 
-                @if($isStudent && $studentdb)
+                @if($isStudent && $studentdb )
                 {{-- Student Profile Dashboard --}}
                 <div class="mt-6 space-y-6">
                     <div class="flex items-center justify-between">

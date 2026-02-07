@@ -33,7 +33,7 @@
             $groupedClassSubjects = $this->getClassSubjectsGroupedByType($activeClass->id);
         @endphp
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        {{-- <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
             <div class="bg-white rounded border p-3">
                 <h3 class="text-sm font-semibold text-gray-800 mb-2">School</h3>
                 <div class="text-xs text-gray-700 space-y-1">
@@ -92,7 +92,7 @@
                     @endif
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         <!-- Class & Section-wise Students -->
         <div class="bg-white rounded border overflow-hidden mb-6">
@@ -146,7 +146,7 @@
             $formativeType = $subjectTypes->firstWhere('name', 'Formative');
         @endphp
 
-        @foreach([['label' => 'Summative', 'type' => $summativeType], ['label' => 'Formative', 'type' => $formativeType]] as $block)
+        {{-- @foreach([['label' => 'Summative', 'type' => $summativeType], ['label' => 'Formative', 'type' => $formativeType]] as $block)
             @php
                 $typeId = $block['type']->id ?? null;
                 $classSubjectsOfType = $typeId ? ($groupedClassSubjects[$typeId] ?? collect()) : collect();
@@ -316,6 +316,6 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
+        </div> --}}
     @endif
 </div>
