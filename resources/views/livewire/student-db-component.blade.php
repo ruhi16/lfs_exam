@@ -223,6 +223,11 @@
                                 : '' }}{{ $student->dist ? $student->dist : '' }}
                             </div>
                             @endif
+                            @if($student->img_ref_profile)
+                            <div class="text-xs text-gray-500 mt-1">
+                                IMG: {{ asset('storage/' . $student->img_ref_profile) }}
+                            </div>
+                            @endif
                         </td>
 
                         <!-- Documents -->
