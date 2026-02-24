@@ -158,7 +158,11 @@ class ExamMarksPdfController extends Controller
             'examClassSubjectMap' => $examClassSubjectMap,
             'marksData' => $marksData,
         ];
-        $pdf = \PDF::loadView('exports.exam20-student-mark-sheet-pdf', $data);
+        $config = [
+            'format' => 'A4-L' // 'A4-L' for landscape, 'A4-P' for portrait
+        ];
+
+        $pdf = \PDF::loadView('exports.exam20-student-mark-sheet-pdf', $data, [], $config);
         return $pdf->stream('StudentMarkSheet-' . \Illuminate\Support\Str::slug($student->studentdb->name ?? 'student') . '.pdf');
     }
 }

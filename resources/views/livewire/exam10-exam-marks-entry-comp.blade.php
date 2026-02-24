@@ -150,99 +150,105 @@
                                 @if($students->count() > 0)
                                     @if($examParts->count() >= 1)
                                         <!-- Display with sub-rows for exam parts (even if only one) to maintain consistency -->
-                                        <table class="min-w-full divide-y divide-gray-200">
-                                            <thead class="bg-gray-50">
-                                                <tr>
-                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
-                                                        Student
-                                                    </th>
-                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                                                        Exam Part
-                                                    </th>
-                                                    
-                                                    <!-- Exam Class Subjects Headers -->
-                                                    @foreach($examClassSubjects as $examClassSubject)
-                                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50">
-                                                            {{ $examClassSubject->subject->name ?? 'N/A' }}<br>
-                                                            <span class="text-[10px] text-gray-600">{{ $examClassSubject->examDetail->examName->name ?? 'N/A' }} - {{ $examClassSubject->examDetail->examType->name ?? 'N/A' }}</span>
-                                                            <div class="mt-2">
-                                                                <button
-                                                                    wire:click="saveAllEntriesForSubject({{ $section->id }}, {{ $examClassSubject->id }})"
-                                                                    class="px-2 py-1 text-xs font-medium text-white bg-purple-600 border border-purple-600 rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 @if(!$isEditingEnabled || !$isValidationPassed) opacity-50 cursor-not-allowed @endif"
-                                                                    @if(!$isEditingEnabled || !$isValidationPassed) disabled @endif
-                                                                >
-                                                                    Save Subject
-                                                                </button>
-                                                            </div>
+                                        <div class="relative overflow-x-auto">
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-50">
+                                                    <tr>
+                                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
+                                                            Student
                                                         </th>
-                                                    @endforeach
-                                                </tr>
-                                            </thead>
-                                            
-                                            <tbody class="bg-white divide-y divide-gray-200">
-                                                @foreach($students as $student)
-                                                    @foreach($examParts as $examPart)
-                                                        <tr class="hover:bg-gray-50 @if(!$isValidationPassed) bg-gray-100 @endif">
-                                                            @if($loop->first)
-                                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-200 @if($examParts->count() > 1) @else border-b @endif" rowspan="{{ $examParts->count() }}">
-                                                                    <div class="flex items-center">
-                                                                        <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                                                            <span class="text-blue-800 font-medium">{{ $student->roll_no ?? 'N/A' }}</span>
-                                                                        </div>
-                                                                        <div class="ml-4">
-                                                                            <div class="font-medium text-gray-900">{{ $student->studentdb->name ?? 'N/A' }}</div>
-                                                                            <div class="text-gray-500 text-xs">Roll: {{ $student->roll_no ?? 'N/A' }}</div>
-                                                                        </div>
+                                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                                                            Exam Part
+                                                        </th>
+                                                        
+                                                        <!-- Exam Class Subjects Headers -->
+                                                        @foreach($examClassSubjects as $examClassSubject)
+                                                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50 min-w-[150px]">
+                                                                <div class="flex flex-col items-center">
+                                                                    <span>{{ $examClassSubject->subject->name ?? 'N/A' }}</span>
+                                                                    <span class="text-[10px] text-gray-600 mt-1">{{ $examClassSubject->examDetail->examName->name ?? 'N/A' }} - {{ $examClassSubject->examDetail->examType->name ?? 'N/A' }}</span>
+                                                                    <div class="mt-2">
+                                                                        <button
+                                                                            wire:click="saveAllEntriesForSubject({{ $section->id }}, {{ $examClassSubject->id }})"
+                                                                            wire:loading.attr="disabled"
+                                                                            class="px-2 py-1 text-xs font-medium text-white bg-purple-600 border border-purple-600 rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 @if(!$isEditingEnabled || !$isValidationPassed) opacity-50 cursor-not-allowed @endif transition-colors duration-200"
+                                                                            @if(!$isEditingEnabled || !$isValidationPassed) disabled @endif
+                                                                        >
+                                                                            <span wire:loading.remove wire:target="saveAllEntriesForSubject({{ $section->id }}, {{ $examClassSubject->id }})">Save Subject</span>
+                                                                            <span wire:loading wire:target="saveAllEntriesForSubject({{ $section->id }}, {{ $examClassSubject->id }})">Saving...</span>
+                                                                        </button>
                                                                     </div>
-                                                                </td>
-                                                            @endif
-                                                            
-                                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 @if(!$isValidationPassed) text-gray-400 @endif">
-                                                                {{ $examPart->examPart->name ?? 'N/A' }}
-                                                                <span class="text-xs text-gray-500">({{ $examPart->examMode->name ?? 'N/A' }})</span>
-                                                            </td>
-                                                            
-                                                            <!-- Exam Class Subjects Cells -->
-                                                            @foreach($examClassSubjects as $examClassSubject)
-                                                                @php
-                                                                    // For single exam part, include part_id in key for consistency
-                                                                    $cellKey = $section->id . '_' . $student->id . '_' . $examClassSubject->id . '_' . $examPart->id;
-                                                                @endphp
-                                                                <td class="px-6 py-4 border border-gray-200 bg-white @if(!$isValidationPassed) opacity-50 cursor-not-allowed @endif">
-                                                                    @if($isValidationPassed)
-                                                                        <div class="flex items-center space-x-2">
-                                                                            <input
-                                                                                type="number"
-                                                                                wire:model="formData.{{ $cellKey }}.marks"
-                                                                                class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 @if(!$isEditingEnabled) bg-gray-100 cursor-not-allowed @endif @if(data_get($this->formData, "{$cellKey}.is_absent")) bg-gray-100 cursor-not-allowed opacity-50 @endif"
-                                                                                placeholder="Enter marks"
-                                                                                min="0"
-                                                                                max="{{ $examClassSubject->full_marks ?? 100 }}"
-                                                                                @if(!$isEditingEnabled || data_get($this->formData, "{$cellKey}.is_absent")) disabled @endif
-                                                                            />
-                                                                            <div class="flex items-center">
-                                                                                <input
-                                                                                    type="checkbox"
-                                                                                    wire:click="clearMarks('{{ $cellKey }}')"
-                                                                                    wire:model="formData.{{ $cellKey }}.is_absent"
-                                                                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded @if(!$isEditingEnabled) cursor-not-allowed @endif"
-                                                                                    @if(!$isEditingEnabled) disabled @endif
-                                                                                />
-                                                                                <span class="ml-1 text-xs text-gray-500">Absent</span>
+                                                                </div>
+                                                            </th>
+                                                        @endforeach
+                                                    </tr>
+                                                </thead>
+                                                
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    @foreach($students as $student)
+                                                        @foreach($examParts as $examPart)
+                                                            <tr class="hover:bg-gray-50 @if(!$isValidationPassed) bg-gray-100 @endif">
+                                                                @if($loop->first)
+                                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-200 @if($examParts->count() > 1) @else border-b @endif" rowspan="{{ $examParts->count() }}">
+                                                                        <div class="flex items-center">
+                                                                            <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                                                <span class="text-blue-800 font-medium">{{ $student->roll_no ?? 'N/A' }}</span>
+                                                                            </div>
+                                                                            <div class="ml-4">
+                                                                                <div class="font-medium text-gray-900">{{ $student->studentdb->name ?? 'N/A' }}</div>
+                                                                                <div class="text-gray-500 text-xs">Roll: {{ $student->roll_no ?? 'N/A' }}</div>
                                                                             </div>
                                                                         </div>
-                                                                    @else
-                                                                        <div class="flex items-center justify-center h-8">
-                                                                            <span class="text-gray-400 text-xs">Validation required</span>
-                                                                        </div>
-                                                                    @endif
+                                                                    </td>
+                                                                @endif
+                                                                
+                                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 @if(!$isValidationPassed) text-gray-400 @endif">
+                                                                    {{ $examPart->examPart->name ?? 'N/A' }}
+                                                                    <span class="text-xs text-gray-500">({{ $examPart->examMode->name ?? 'N/A' }})</span>
                                                                 </td>
-                                                            @endforeach
-                                                        </tr>
+                                                                
+                                                                <!-- Exam Class Subjects Cells -->
+                                                                @foreach($examClassSubjects as $examClassSubject)
+                                                                    @php
+                                                                        // Use exam_detail_id for consistency with database storage
+                                                                        $cellKey = $section->id . '_' . $student->id . '_' . $examClassSubject->id . '_' . $examPart->id;
+                                                                    @endphp
+                                                                    <td class="px-6 py-4 border border-gray-200 bg-white @if(!$isValidationPassed) opacity-50 cursor-not-allowed @endif">
+                                                                        @if($isValidationPassed)
+                                                                            <div class="flex items-center space-x-2">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    wire:model.defer="formData.{{ $cellKey }}.marks"
+                                                                                    class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 @if(!$isEditingEnabled) bg-gray-100 cursor-not-allowed @endif @if(data_get($this->formData, "{$cellKey}.is_absent")) bg-gray-100 cursor-not-allowed opacity-50 @endif"
+                                                                                    placeholder="Enter marks"
+                                                                                    min="0"
+                                                                                    max="{{ $examClassSubject->full_marks ?? 100 }}"
+                                                                                    @if(!$isEditingEnabled || data_get($this->formData, "{$cellKey}.is_absent")) disabled @endif
+                                                                                />
+                                                                                <div class="flex items-center">
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        wire:click="clearMarks('{{ $cellKey }}')"
+                                                                                        wire:model="formData.{{ $cellKey }}.is_absent"
+                                                                                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded @if(!$isEditingEnabled) cursor-not-allowed @endif"
+                                                                                        @if(!$isEditingEnabled) disabled @endif
+                                                                                    />
+                                                                                    <span class="ml-1 text-xs text-gray-500">Absent</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        @else
+                                                                            <div class="flex items-center justify-center h-8">
+                                                                                <span class="text-gray-400 text-xs">Validation required</span>
+                                                                            </div>
+                                                                        @endif
+                                                                    </td>
+                                                                @endforeach
+                                                            </tr>
+                                                        @endforeach
                                                     @endforeach
-                                                @endforeach
-                                            </tbody>
-                                        </table>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     @else
                                         <div class="text-center py-12">
                                             <div class="text-gray-400 mb-4">

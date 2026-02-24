@@ -111,6 +111,21 @@ class AdminDashboardContainerComp extends Component
             ]
         ],
         [
+            'name' => 'Class-Section Task',
+            'component' => 'class_section_task',
+            'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+            'submenu' => [
+                [
+                    'name' => 'Student Status',
+                    'component' => 'class_section_task.student_status'
+                ],
+                // [
+                //     'name' => 'Class-Section Task Details',
+                //     'component' => 'class_section_task.details'
+                // ],
+            ]
+        ],
+        [
             'name' => 'Exam Settings',
             'component' => 'exam_settings',
             'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',

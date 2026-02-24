@@ -3,6 +3,8 @@
 namespace App\Http\Livewire;
 
 use Livewire\Component;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use App\Models\Exam10MarksEntry;
 use App\Models\Myclass;
 use App\Models\MyclassSection;
@@ -58,89 +60,119 @@ class Exam10ExamMarksEntryComp extends Component
 
     public function loadData()
     {
-        $this->classes = Myclass::orderBy('id')->get();
-        $this->sections = MyclassSection::with(['section', 'myclass'])->orderBy('myclass_id')->get();
-        $this->subjectTypes = SubjectType::orderBy('name')->get();
-        $this->examNames = Exam01Name::orderBy('id')->get();
-        $this->examTypes = Exam02Type::orderBy('name')->get();
-        $this->examParts = Exam03Part::orderBy('name')->get();
-        $this->sessions = Session::orderBy('name')->get();
-        $this->schools = School::orderBy('name')->get();
-        $this->users = User::orderBy('name')->get();
-
-        // Load existing exam marks entries
-        $this->examClassSubjects = Exam06ClassSubject::with([
-            'myclass',
-            'subject',
-            'examDetail'
-        ])->get();
-
-        // Load existing marks entries
-        $this->existingEntries = Exam10MarksEntry::with([
-            'myclassSection.section',
-            'examClassSubject.subject',
-            'studentcr.studentdb',
-            'session'
-        ])->get();
+        // Cache static reference data for 1 hour
+        $this->classes = Cache::remember('exam_classes', 3600, function() {
+            return Myclass::orderBy('id')->get();
+        });
+        
+        $this->subjectTypes = Cache::remember('subject_types', 3600, function() {
+            return SubjectType::orderBy('name')->get();
+        });
+        
+        $this->examNames = Cache::remember('exam_names', 3600, function() {
+            return Exam01Name::orderBy('id')->get();
+        });
+        
+        $this->examTypes = Cache::remember('exam_types', 3600, function() {
+            return Exam02Type::orderBy('name')->get();
+        });
+        
+        $this->examParts = Cache::remember('exam_parts', 3600, function() {
+            return Exam03Part::orderBy('name')->get();
+        });
+        
+        $this->sessions = Cache::remember('sessions', 3600, function() {
+            return Session::orderBy('name')->get();
+        });
+        
+        $this->schools = Cache::remember('schools', 3600, function() {
+            return School::orderBy('name')->get();
+        });
+        
+        $this->users = Cache::remember('users', 3600, function() {
+            return User::orderBy('name')->get();
+        });
+        
+        // Load sections only when needed
+        $this->sections = collect();
+        
+        // Don't load all examClassSubjects and existingEntries at once
+        $this->examClassSubjects = collect();
+        $this->existingEntries = collect();
     }
 
     public function initializeFormData()
     {
-        // Initialize form data structure and load existing records
-        $existingRecords = Exam10MarksEntry::with([
-            'myclassSection',
-            'examClassSubject',
-            'studentcr'
-        ])->get();
-
-        foreach ($existingRecords as $record) {
-            $key = $record->myclass_section_id . '_' . $record->studentcr_id . '_' . $record->exam_class_subject_id . '_' . $record->exam_detail_id;
-            $this->formData[$key] = [
-                'marks' => $record->exam_marks == -99 ? null : $record->exam_marks,
-                'is_absent' => $record->exam_marks == -99 || $record->is_absent,
-                'order_index' => $record->order_index,
-                'is_optional' => $record->is_optional,
-                'session_id' => $record->session_id,
-                'school_id' => $record->school_id,
-                'user_id' => $record->user_id,
-                'approved_by' => $record->approved_by,
-                'is_active' => $record->is_active,
-                'is_finalized' => $record->is_finalized,
-                'status' => $record->status,
-                'remarks' => $record->remarks
-            ];
+        // Clear existing form data
+        $this->formData = [];
+        
+        // Load form data for the active class regardless of validation state
+        if (isset($this->classes[$this->activeTab])) {
+            $classId = $this->classes[$this->activeTab]->id;
+            
+            // Load ALL exam marks entries for current class without any filters
+            $existingRecords = Exam10MarksEntry::whereHas('examClassSubject.myclass', function($query) use ($classId) {
+                $query->where('myclasses.id', $classId);
+            })
+            ->with(['examClassSubject', 'examDetail'])
+            ->limit(1000)
+            ->get();
+            
+            foreach ($existingRecords as $record) {
+                $key = $record->myclass_section_id . '_' . $record->studentcr_id . '_' . $record->exam_class_subject_id . '_' . $record->exam_detail_id;
+                $this->formData[$key] = [
+                    'marks' => $record->exam_marks == -99 ? null : $record->exam_marks,
+                    'is_absent' => $record->exam_marks == -99 || $record->is_absent,
+                    'order_index' => $record->order_index,
+                    'is_optional' => $record->is_optional,
+                    'session_id' => $record->session_id,
+                    'school_id' => $record->school_id,
+                    'user_id' => $record->user_id,
+                    'approved_by' => $record->approved_by,
+                    'is_active' => $record->is_active,
+                    'is_finalized' => $record->is_finalized,
+                    'status' => $record->status,
+                    'remarks' => $record->remarks
+                ];
+            }
         }
     }
 
     public function setActiveTab($index)
     {
         $this->activeTab = $index;
+        // Reinitialize form data when tab changes
+        $this->initializeFormData();
     }
 
     public function getClassSections($classId)
     {
-        return MyclassSection::where('myclass_id', $classId)
-            ->with(['section'])
-            ->orderBy('section_id')
-            ->get();
+        return Cache::remember("class_sections_{$classId}", 1800, function() use ($classId) {
+            return MyclassSection::where('myclass_id', $classId)
+                ->with(['section'])
+                ->orderBy('section_id')
+                ->get();
+        });
     }
 
 
     public function getStudentsInSection($myclassSectionId)
     {
-        // First get the MyclassSection record to get myclass_id and section_id
-        $myclassSection = MyclassSection::find($myclassSectionId);
+        return Cache::remember("students_in_section_{$myclassSectionId}", 1800, function() use ($myclassSectionId) {
+            // First get the MyclassSection record to get myclass_id and section_id
+            $myclassSection = MyclassSection::find($myclassSectionId);
 
-        if (!$myclassSection) {
-            return collect();
-        }
+            if (!$myclassSection) {
+                return collect();
+            }
 
-        // Query students using the separate myclass_id and section_id columns
-        return \App\Models\Studentcr::where('myclass_id', $myclassSection->myclass_id)
-            ->where('section_id', $myclassSection->section_id)
-            ->with(['studentdb', 'myclass', 'section'])
-            ->orderBy('roll_no')
-            ->get();
+            // Query students using the separate myclass_id and section_id columns
+            return \App\Models\Studentcr::where('myclass_id', $myclassSection->myclass_id)
+                ->where('section_id', $myclassSection->section_id)
+                ->with(['studentdb', 'myclass', 'section'])
+                ->orderBy('roll_no')
+                ->get();
+        });
     }
 
     public function setSelectedExamName($examNameId)
@@ -150,6 +182,7 @@ class Exam10ExamMarksEntryComp extends Component
         $this->selectedSubjectId = null;
         $this->filteredSubjects = [];
         $this->checkValidation();
+        $this->initializeFormData();
     }
 
     public function setSelectedExamType($examTypeId)
@@ -160,25 +193,28 @@ class Exam10ExamMarksEntryComp extends Component
         if ($this->selectedExamNameId && $this->selectedExamTypeId && isset($this->classes[$this->activeTab])) {
             $classId = $this->classes[$this->activeTab]->id;
 
-            // Fetch subjects based on Class, Exam Name, and Exam Type
-            $this->filteredSubjects = Exam06ClassSubject::where('myclass_id', $classId)
-                ->whereHas('examDetail', function ($q) {
-                    $q->where('exam_name_id', $this->selectedExamNameId)
-                        ->where('exam_type_id', $this->selectedExamTypeId);
-                })
-                ->with('subject')
-                ->get()
-                ->unique('subject_id')
-                ->map(function ($item) {
-                    return $item->subject;
-                })
-                ->sortBy('name')
-                ->values();
+            // Fetch subjects based on Class, Exam Name, and Exam Type with caching
+            $this->filteredSubjects = Cache::remember("filtered_subjects_{$classId}_{$this->selectedExamNameId}_{$this->selectedExamTypeId}", 1800, function() use ($classId) {
+                return Exam06ClassSubject::where('myclass_id', $classId)
+                    ->whereHas('examDetail', function ($q) {
+                        $q->where('exam_name_id', $this->selectedExamNameId)
+                            ->where('exam_type_id', $this->selectedExamTypeId);
+                    })
+                    ->with('subject')
+                    ->get()
+                    ->unique('subject_id')
+                    ->map(function ($item) {
+                        return $item->subject;
+                    })
+                    ->sortBy('name')
+                    ->values();
+            });
         } else {
             $this->filteredSubjects = [];
         }
 
         $this->checkValidation();
+        $this->initializeFormData();
     }
 
     public function setSelectedSubject($subjectId)
@@ -227,53 +263,67 @@ class Exam10ExamMarksEntryComp extends Component
 
     public function getExamPartsForClass($classId)
     {
-        $query = Exam05Detail::where('myclass_id', $classId)
-            ->with(['examName', 'examType', 'examPart', 'examMode']);
+        $cacheKey = "exam_parts_{$classId}";
+        if ($this->selectedExamNameId) $cacheKey .= "_exam_{$this->selectedExamNameId}";
+        if ($this->selectedExamTypeId) $cacheKey .= "_type_{$this->selectedExamTypeId}";
+        if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') $cacheKey .= "_subject_{$this->selectedSubjectId}";
 
-        if ($this->selectedExamNameId) {
-            $query->where('exam_name_id', $this->selectedExamNameId);
-        }
+        return Cache::remember($cacheKey, 1800, function() use ($classId) {
+            $query = Exam05Detail::where('myclass_id', $classId)
+                ->with(['examName', 'examType', 'examPart', 'examMode']);
 
-        if ($this->selectedExamTypeId) {
-            $query->where('exam_type_id', $this->selectedExamTypeId);
-        }
+            if ($this->selectedExamNameId) {
+                $query->where('exam_name_id', $this->selectedExamNameId);
+            }
 
-        if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') {
-            // Find exam details that have this subject mapped
-            $examDetailIds = Exam06ClassSubject::where('myclass_id', $classId)
-                ->where('subject_id', $this->selectedSubjectId)
-                ->pluck('exam_detail_id');
+            if ($this->selectedExamTypeId) {
+                $query->where('exam_type_id', $this->selectedExamTypeId);
+            }
 
-            $query->whereIn('id', $examDetailIds);
-        }
+            if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') {
+                // Find exam details that have this subject mapped
+                $examDetailIds = Exam06ClassSubject::where('myclass_id', $classId)
+                    ->where('subject_id', $this->selectedSubjectId)
+                    ->pluck('exam_detail_id');
 
-        return $query->orderBy('exam_part_id')->get();
+                $query->whereIn('id', $examDetailIds);
+            }
+
+            return $query->orderBy('exam_part_id')->get();
+        });
     }
 
     public function getUniqueExamClassSubjectsForClass($classId)
     {
-        $query = Exam06ClassSubject::where('myclass_id', $classId)
-            ->with(['myclass', 'subject', 'examDetail.examName', 'examDetail.examType', 'examDetail.examPart']);
+        $cacheKey = "exam_class_subjects_{$classId}";
+        if ($this->selectedExamNameId) $cacheKey .= "_exam_{$this->selectedExamNameId}";
+        if ($this->selectedExamTypeId) $cacheKey .= "_type_{$this->selectedExamTypeId}";
+        if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') $cacheKey .= "_subject_{$this->selectedSubjectId}";
 
-        if ($this->selectedExamNameId) {
-            $query->whereHas('examDetail', function ($q) {
-                $q->where('exam_name_id', $this->selectedExamNameId);
-            });
-        }
+        return Cache::remember($cacheKey, 1800, function() use ($classId) {
+            $query = Exam06ClassSubject::where('myclass_id', $classId)
+                ->with(['myclass', 'subject', 'examDetail.examName', 'examDetail.examType', 'examDetail.examPart']);
 
-        if ($this->selectedExamTypeId) {
-            $query->whereHas('examDetail', function ($q) {
-                $q->where('exam_type_id', $this->selectedExamTypeId);
-            });
-        }
+            if ($this->selectedExamNameId) {
+                $query->whereHas('examDetail', function ($q) {
+                    $q->where('exam_name_id', $this->selectedExamNameId);
+                });
+            }
 
-        if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') {
-            $query->where('subject_id', $this->selectedSubjectId);
-        }
+            if ($this->selectedExamTypeId) {
+                $query->whereHas('examDetail', function ($q) {
+                    $q->where('exam_type_id', $this->selectedExamTypeId);
+                });
+            }
 
-        // Get unique subjects by grouping them
-        $subjects = $query->get()->unique('subject_id')->values();
-        return $subjects->sortBy('subject.name');
+            if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') {
+                $query->where('subject_id', $this->selectedSubjectId);
+            }
+
+            // Get unique subjects by grouping them
+            $subjects = $query->get()->unique('subject_id')->values();
+            return $subjects->sortBy('subject.name');
+        });
     }
 
     public function saveAllEntriesForSubject($sectionId, $examClassSubjectId)
@@ -334,6 +384,8 @@ class Exam10ExamMarksEntryComp extends Component
         }
         session()->flash('message', "$savedCount record(s) saved for subject.");
         $this->emit('refreshComponent');
+        // Clear relevant cache
+        Cache::forget("students_in_section_{$sectionId}");
     }
 
     public function getExistingEntry($myclassSectionId, $examClassSubjectId)
@@ -556,6 +608,8 @@ class Exam10ExamMarksEntryComp extends Component
 
         session()->flash('message', "$savedCount record(s) saved successfully.");
         $this->emit('refreshComponent');
+        // Clear relevant caches
+        Cache::forget('exam_classes');
     }
 
     public function clearMarks($cellKey)

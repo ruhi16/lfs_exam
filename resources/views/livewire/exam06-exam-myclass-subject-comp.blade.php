@@ -56,6 +56,9 @@
                                     ];
                                 @endphp
                                 <th rowspan="3" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase bg-gray-100 border-r">
+                                    Type
+                                </th>
+                                <th rowspan="3" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase bg-gray-100 border-r">
                                     Subject
                                 </th>
                                 @foreach($examStructure as $examNameId => $examNameData)
