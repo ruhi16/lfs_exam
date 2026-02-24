@@ -80,10 +80,10 @@ class ExamMarksPdfController extends Controller
             ->get();
 
         foreach ($marksEntries as $entry) {
-            $key = $entry->studentcr_id . '_' . $entry->exam_class_subject_id;
+            $key = $entry->studentcr_id . '_' . $entry->exam_detail_id . '_' . $entry->exam_class_subject_id;
             $marksData[$key] = [
-                'exam_marks' => $entry->exam_marks,
-                'is_absent' => $entry->is_absent,
+                'exam_marks' => $entry->exam_marks == -99 ? null : $entry->exam_marks,
+                'is_absent' => $entry->exam_marks == -99 || $entry->is_absent,
             ];
         }
 

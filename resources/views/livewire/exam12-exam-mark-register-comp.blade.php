@@ -177,7 +177,7 @@
                                                                 $total = 0;
                                                                 $hasAny = false;
                                                                 foreach ($ecsMap as $subId => $map) {
-                                                                    $key = $student->id . '_' . $map['id'];
+                                                                    $key = $student->id . '_' . $summDetail->id . '_' . $map['id'];
                                                                     $entry = $marksData[$key] ?? null;
                                                                     if ($entry && !($entry['is_absent'] ?? false) && isset($entry['exam_marks'])) {
                                                                         $total += $entry['exam_marks'];
@@ -205,8 +205,8 @@
                                                                 // Check if mapping exists using our pre-loaded map
                                                                 $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$subjectId] ?? null) : null;
                                                                 
-                                                                // Key for marks: {student_id}_{exam_class_subject_id}
-                                                                $key = $mapping ? ($student->id . '_' . $mapping['id']) : null;
+                                                                // Key for marks: {student_id}_{exam_detail_id}_{exam_class_subject_id}
+                                                                $key = $mapping ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
                                                                 $markEntry = $key ? ($marksData[$key] ?? null) : null;
                                                                 
                                                                 $bgColor = $mapping ? 'bg-white' : 'bg-gray-100';
@@ -263,7 +263,7 @@
                                                                         && isset($examClassSubjectMap[$d->id][$subjectId]);
                                                                 });
                                                                 $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$subjectId] ?? null) : null;
-                                                                $key = $mapping ? ($student->id . '_' . $mapping['id']) : null;
+                                                                $key = $mapping ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
                                                                 $markEntry = $key ? ($marksData[$key] ?? null) : null;
                                                                 $bgColor = $mapping ? 'bg-white' : 'bg-gray-100';
                                                             @endphp

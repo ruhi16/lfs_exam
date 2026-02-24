@@ -114,14 +114,13 @@ class Exam12ExamMarkRegisterComp extends Component
         $marksEntries = Exam10MarksEntry::whereIn('myclass_section_id', $sectionIds)
             ->get();
 
-        // Map marks to a key: student_id_exam_class_subject_id (original format)
+        // Map marks to a key: student_id_exam_detail_id_exam_class_subject_id
         foreach ($marksEntries as $entry) {
-            // We use the original key format for compatibility
-            // Key: {student_id}_{exam_class_subject_id}
-            $key = $entry->studentcr_id . '_' . $entry->exam_class_subject_id;
+            // Include exam_detail_id for explicit verification as requested
+            $key = $entry->studentcr_id . '_' . $entry->exam_detail_id . '_' . $entry->exam_class_subject_id;
             $this->marksData[$key] = [
-                'exam_marks' => $entry->exam_marks,
-                'is_absent' => $entry->is_absent,
+                'exam_marks' => $entry->exam_marks == -99 ? null : $entry->exam_marks,
+                'is_absent' => $entry->exam_marks == -99 || $entry->is_absent,
             ];
         }
     }
@@ -151,63 +150,37 @@ class Exam12ExamMarkRegisterComp extends Component
 
         // Iterate through the bound marksData
         foreach ($this->marksData as $key => $data) {
-            // Key format: {student_id}_{exam_class_subject_id}
+            // Key format: {student_id}_{exam_detail_id}_{exam_class_subject_id}
             $parts = explode('_', $key);
-            if (count($parts) != 2) continue;
+            if (count($parts) != 3) continue;
 
             $studentId = $parts[0];
-            $examClassSubjectId = $parts[1];
-
-            // Validate basic integrity
-            // Check if student exists in our loaded list? (Optional optimization)
-            // Check if marks are valid?
+            $examDetailId = $parts[1];
+            $examClassSubjectId = $parts[2];
 
             if (!isset($data['is_absent'])) $data['is_absent'] = false;
 
             // Skip empty entries that were never touched (null marks, not absent)
-            if ($data['exam_marks'] === null && !$data['is_absent']) {
+            if (($data['exam_marks'] === null || $data['exam_marks'] === '') && !$data['is_absent']) {
                 continue;
             }
 
-            // If marks is empty string (user cleared it), treat as null
-            if ($data['exam_marks'] === '') $data['exam_marks'] = null;
-
             try {
-                // We need more info to save: section_id, exam_detail_id.
-                // We can fetch these from the IDs or look them up.
-                // Since we need to save quickly, let's lookup necessary IDs.
-                // Optimally, we could have stored these in the key or a separate map.
-
-                // Reverse lookup or fetch. 
-                // Since we are saving, a few queries here is okay-ish, but batching is better.
-                // But updateOrCreate needs specific IDs.
-
-                // Let's get the Exam06ClassSubject to find exam_detail_id
-                // We can't easily find it from the map without iterating.
-                // Let's do a query. To optimize, we could memoize or pre-load.
-                // Given the save happens once, direct query is acceptable for safety.
-                $ecs = Exam06ClassSubject::find($examClassSubjectId);
-                if (!$ecs) continue;
-
                 $student = $this->students->where('id', $studentId)->first();
                 if (!$student) continue;
 
-                // Find the section for this student
-                // (We loaded students with section relation)
-                // Actually myclass_section_id is needed for Exam10MarksEntry.
-                // Student has section_id. MyclassSection links class and section.
                 $myclassSection = $this->sections->where('section_id', $student->section_id)->first();
                 if (!$myclassSection) continue;
 
                 Exam10MarksEntry::updateOrCreate(
                     [
                         'myclass_section_id' => $myclassSection->id,
-                        'exam_detail_id' => $ecs->exam_detail_id,
+                        'exam_detail_id' => $examDetailId,
                         'studentcr_id' => $studentId,
-                        'exam_class_subject_id' => $ecs->id
+                        'exam_class_subject_id' => $examClassSubjectId
                     ],
                     [
-                        'exam_marks' => $data['is_absent'] ? null : $data['exam_marks'],
+                        'exam_marks' => $data['is_absent'] ? -99 : $data['exam_marks'],
                         'is_absent' => $data['is_absent'],
                         'session_id' => session('session_id') ?? 1,
                         'user_id' => auth()->id() ?? 1,
