@@ -143,7 +143,7 @@
     
     @php
         // Helper functions for calculating subject marks
-        function calculateSubjectTotalMarks($subjectId, $exams, $examClassSubjectMap, $marksData, $examType) {
+        function calculateSubjectTotalMarks($subjectId, $exams, $examClassSubjectMap, $marksData, $examType, $studentId) {
             $totalMarks = 0;
             foreach($exams as $examNameId => $examParts) {
                 foreach($examParts as $examPartId => $details) {
@@ -154,7 +154,8 @@
                     if ($selectedDetail) {
                         $mapping = $examClassSubjectMap[$selectedDetail->id][$subjectId] ?? null;
                         if ($mapping) {
-                            $entry = $marksData[$mapping['id']] ?? null;
+                            $key = $studentId . '_' . $selectedDetail->id . '_' . $mapping['id'];
+                            $entry = $marksData[$key] ?? null;
                             if ($entry && !$entry['is_absent'] && isset($entry['exam_marks']) && $entry['exam_marks'] !== null) {
                                 $totalMarks += intval(round($entry['exam_marks']));
                             }
@@ -247,7 +248,9 @@
                                             $examPart = \App\Models\Exam03Part::find($examPartId);
                                         @endphp
                                         <th>
-                                            <div class="muted">{{ $examPart->name ?? 'Part' }}</div>
+                                            <div class="muted">
+                                                {{ $examPart->name ?? 'Part' }}                                                
+                                            </div>
                                         </th>
                                     @endforeach
                                 @endforeach
@@ -275,7 +278,8 @@
                                                     return optional($d->examType)->name === 'Summative';
                                                 }) ?? collect($details)->first();
                                                 $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) : null;
-                                                $entry = $mapping ? ($marksData[$mapping['id']] ?? null) : null;
+                                                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
+                                                $entry = $key ? ($marksData[$key] ?? null) : null;
                                             @endphp
                                             <td>
                                                 @if($mapping)
@@ -390,7 +394,8 @@
                                                     return optional($d->examType)->name === 'Formative';
                                                 }) ?? collect($details)->first();
                                                 $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) : null;
-                                                $entry = $mapping ? ($marksData[$mapping['id']] ?? null) : null;
+                                                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
+                                                $entry = $key ? ($marksData[$key] ?? null) : null;
                                             @endphp
                                             <td>
                                                 @if($mapping)
@@ -474,7 +479,8 @@
                                                     return optional($d->examType)->name === 'Summative';
                                                 }) ?? collect($details)->first();
                                                 $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) : null;
-                                                $entry = $mapping ? ($marksData[$mapping['id']] ?? null) : null;
+                                                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
+                                                $entry = $key ? ($marksData[$key] ?? null) : null;
                                             @endphp
                                             <td>
                                                 @if($mapping)
@@ -579,7 +585,8 @@
                 }) ?? collect($details)->first();
                 $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) :
                 null;
-                $entry = $mapping ? ($marksData[$mapping['id']] ?? null) : null;
+                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
+                $entry = $key ? ($marksData[$key] ?? null) : null;
                 @endphp
                 <td>
                     @if($mapping)
@@ -690,7 +697,8 @@
                 }) ?? collect($details)->first();
                 $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) :
                 null;
-                $entry = $mapping ? ($marksData[$mapping['id']] ?? null) : null;
+                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
+                $entry = $key ? ($marksData[$key] ?? null) : null;
                 @endphp
                 <td>
                     @if($mapping)
@@ -773,7 +781,8 @@
                 }) ?? collect($details)->first();
                 $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) :
                 null;
-                $entry = $mapping ? ($marksData[$mapping['id']] ?? null) : null;
+                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
+                $entry = $key ? ($marksData[$key] ?? null) : null;
                 @endphp
                 <td>
                     @if($mapping)
@@ -973,8 +982,8 @@
                                     // Get all summative subjects to calculate overall performance
                                     $summativePercentages = [];
                                     foreach($summativeSubjects as $ms) {
-                                        $subjectFirstHalfMarks = calculateSubjectTotalMarks($ms->subject_id, $firstHalfExams, $examClassSubjectMap, $marksData, 'Summative');
-                                        $subjectSecondHalfMarks = calculateSubjectTotalMarks($ms->subject_id, $secondHalfExams, $examClassSubjectMap, $marksData, 'Summative');
+                                        $subjectFirstHalfMarks = calculateSubjectTotalMarks($ms->subject_id, $firstHalfExams, $examClassSubjectMap, $marksData, 'Summative', $student->id);
+                                        $subjectSecondHalfMarks = calculateSubjectTotalMarks($ms->subject_id, $secondHalfExams, $examClassSubjectMap, $marksData, 'Summative', $student->id);
                                         $subjectFirstHalfFull = calculateSubjectFullMarks($ms->subject_id, $firstHalfExams, $examClassSubjectMap, 'Summative');
                                         $subjectSecondHalfFull = calculateSubjectFullMarks($ms->subject_id, $secondHalfExams, $examClassSubjectMap, 'Summative');
                                         
@@ -1011,7 +1020,7 @@
                                     // Get all formative subjects to calculate overall performance
                                     $formativePercentages = [];
                                     foreach($formativeSubjects as $ms) {
-                                        $formTotalMarks = calculateSubjectTotalMarks($ms->subject_id, $examDetailsGrouped, $examClassSubjectMap, $marksData, 'Formative');
+                                        $formTotalMarks = calculateSubjectTotalMarks($ms->subject_id, $examDetailsGrouped, $examClassSubjectMap, $marksData, 'Formative', $student->id);
                                         $formTotalFull = calculateSubjectFullMarks($ms->subject_id, $examDetailsGrouped, $examClassSubjectMap, 'Formative');
                                         
                                         if ($formTotalFull > 0) {
