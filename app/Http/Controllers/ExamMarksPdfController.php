@@ -87,6 +87,124 @@ class ExamMarksPdfController extends Controller
             ];
         }
 
+        // 7. Calculate highest marks for each subject in the class
+        $highestMarksBySubject = [];
+        $highestFirstTermMarksBySubject = [];
+        $highestSecondTermMarksBySubject = [];
+        $highestFirstTermRollNosBySubject = [];
+        $highestSecondTermRollNosBySubject = [];
+        $firstTermMarksByStudentSubject = [];
+        $secondTermMarksByStudentSubject = [];
+        
+        // Prepare exam categorization
+        $firstHalfExamIds = [];
+        $secondHalfExamIds = [];
+        
+        foreach($examDetailsGrouped as $examNameId => $examParts){
+            $examName = \App\Models\Exam01Name::find($examNameId);
+            $name = strtolower($examName->name ?? '');
+            if(str_contains($name, 'first') || str_contains($name, 'half') || str_contains($name, '1st')){
+                foreach($examParts as $examPartId => $details) {
+                    foreach($details as $detail) {
+                        $firstHalfExamIds[] = $detail->id;
+                    }
+                }
+            } else if(str_contains($name, '2nd') || str_contains($name, 'second') || str_contains($name, 'annual')){
+                foreach($examParts as $examPartId => $details) {
+                    foreach($details as $detail) {
+                        $secondHalfExamIds[] = $detail->id;
+                    }
+                }
+            }
+        }
+        
+        foreach ($marksEntries as $entry) {
+            if (!$entry->is_absent && $entry->exam_marks !== null) {
+                // Find the corresponding exam class subject mapping
+                foreach ($examClassSubjectMap as $examDetailId => $subjects) {
+                    foreach ($subjects as $subjectId => $mapping) {
+                        if ($mapping['id'] == $entry->exam_class_subject_id) {
+                            // Determine which term this belongs to
+                            if (in_array($examDetailId, $firstHalfExamIds)) {
+                                $key = $entry->studentcr_id . '_' . $subjectId;
+                                if (!isset($firstTermMarksByStudentSubject[$key])) {
+                                    $firstTermMarksByStudentSubject[$key] = 0;
+                                }
+                                $firstTermMarksByStudentSubject[$key] += $entry->exam_marks;
+                            } elseif (in_array($examDetailId, $secondHalfExamIds)) {
+                                $key = $entry->studentcr_id . '_' . $subjectId;
+                                if (!isset($secondTermMarksByStudentSubject[$key])) {
+                                    $secondTermMarksByStudentSubject[$key] = 0;
+                                }
+                                $secondTermMarksByStudentSubject[$key] += $entry->exam_marks;
+                            }
+                            break 2; // break both loops once we find the match
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Create student roll number lookup
+        $studentRollNumbers = [];
+        foreach ($students as $student) {
+            $studentRollNumbers[$student->id] = $student->roll_no;
+        }
+        
+        // Calculate highest total marks per subject for first term
+        $subjectTotalsFirst = [];
+        foreach ($firstTermMarksByStudentSubject as $key => $totalMarks) {
+            $parts = explode('_', $key);
+            $studentId = $parts[0];
+            $subjectId = $parts[1];
+            
+            if (!isset($subjectTotalsFirst[$subjectId])) {
+                $subjectTotalsFirst[$subjectId] = [];
+            }
+            $subjectTotalsFirst[$subjectId][] = ['marks' => $totalMarks, 'student_id' => $studentId];
+        }
+        
+        foreach ($subjectTotalsFirst as $subjectId => $totals) {
+            // Find the entry with the highest marks
+            $maxEntry = null;
+            foreach ($totals as $entry) {
+                if (!$maxEntry || $entry['marks'] > $maxEntry['marks']) {
+                    $maxEntry = $entry;
+                }
+            }
+            if ($maxEntry) {
+                $highestFirstTermMarksBySubject[$subjectId] = $maxEntry['marks'];
+                $highestFirstTermRollNosBySubject[$subjectId] = $studentRollNumbers[$maxEntry['student_id']] ?? 'N/A';
+            }
+        }
+        
+        // Calculate highest total marks per subject for second term
+        $subjectTotalsSecond = [];
+        foreach ($secondTermMarksByStudentSubject as $key => $totalMarks) {
+            $parts = explode('_', $key);
+            $studentId = $parts[0];
+            $subjectId = $parts[1];
+            
+            if (!isset($subjectTotalsSecond[$subjectId])) {
+                $subjectTotalsSecond[$subjectId] = [];
+            }
+            $subjectTotalsSecond[$subjectId][] = ['marks' => $totalMarks, 'student_id' => $studentId];
+        }
+        
+        foreach ($subjectTotalsSecond as $subjectId => $totals) {
+            // Find the entry with the highest marks
+            $maxEntry = null;
+            foreach ($totals as $entry) {
+                if (!$maxEntry || $entry['marks'] > $maxEntry['marks']) {
+                    $maxEntry = $entry;
+                }
+            }
+            if ($maxEntry) {
+                $highestSecondTermMarksBySubject[$subjectId] = $maxEntry['marks'];
+                $highestSecondTermRollNosBySubject[$subjectId] = $studentRollNumbers[$maxEntry['student_id']] ?? 'N/A';
+            }
+        }
+
         $data = [
             'activeClass' => $activeClass,
             'sections' => $sections,
@@ -95,6 +213,10 @@ class ExamMarksPdfController extends Controller
             'classSubjects' => $classSubjects,
             'examClassSubjectMap' => $examClassSubjectMap,
             'marksData' => $marksData,
+            'highestFirstTermMarksBySubject' => $highestFirstTermMarksBySubject,
+            'highestSecondTermMarksBySubject' => $highestSecondTermMarksBySubject,
+            'highestFirstTermRollNosBySubject' => $highestFirstTermRollNosBySubject,
+            'highestSecondTermRollNosBySubject' => $highestSecondTermRollNosBySubject,
         ];
 
         $pdf = \PDF::loadView('exports.exam12-exam-marks-register-pdf', $data, [], [
@@ -149,6 +271,127 @@ class ExamMarksPdfController extends Controller
                 'is_absent' => $entry->is_absent,
             ];
         }
+        
+        // Calculate highest marks for each subject in the class
+        $marksEntries = Exam10MarksEntry::whereIn('myclass_section_id', $sections->pluck('id'))->get();
+        
+        $highestFirstTermMarksBySubject = [];
+        $highestSecondTermMarksBySubject = [];
+        $highestFirstTermRollNosBySubject = [];
+        $highestSecondTermRollNosBySubject = [];
+        $firstTermMarksByStudentSubject = [];
+        $secondTermMarksByStudentSubject = [];
+        
+        // Prepare exam categorization
+        $firstHalfExamIds = [];
+        $secondHalfExamIds = [];
+        
+        foreach($examDetailsGrouped as $examNameId => $examParts){
+            $examName = \App\Models\Exam01Name::find($examNameId);
+            $name = strtolower($examName->name ?? '');
+            if(str_contains($name, 'first') || str_contains($name, 'half') || str_contains($name, '1st')){
+                foreach($examParts as $examPartId => $details) {
+                    foreach($details as $detail) {
+                        $firstHalfExamIds[] = $detail->id;
+                    }
+                }
+            } else if(str_contains($name, '2nd') || str_contains($name, 'second') || str_contains($name, 'annual')){
+                foreach($examParts as $examPartId => $details) {
+                    foreach($details as $detail) {
+                        $secondHalfExamIds[] = $detail->id;
+                    }
+                }
+            }
+        }
+        
+        foreach ($marksEntries as $entry) {
+            if (!$entry->is_absent && $entry->exam_marks !== null) {
+                // Find the corresponding exam class subject mapping
+                foreach ($examClassSubjectMap as $examDetailId => $subjects) {
+                    foreach ($subjects as $subjectId => $mapping) {
+                        if ($mapping['id'] == $entry->exam_class_subject_id) {
+                            // Determine which term this belongs to
+                            if (in_array($examDetailId, $firstHalfExamIds)) {
+                                $key = $entry->studentcr_id . '_' . $subjectId;
+                                if (!isset($firstTermMarksByStudentSubject[$key])) {
+                                    $firstTermMarksByStudentSubject[$key] = 0;
+                                }
+                                $firstTermMarksByStudentSubject[$key] += $entry->exam_marks;
+                            } elseif (in_array($examDetailId, $secondHalfExamIds)) {
+                                $key = $entry->studentcr_id . '_' . $subjectId;
+                                if (!isset($secondTermMarksByStudentSubject[$key])) {
+                                    $secondTermMarksByStudentSubject[$key] = 0;
+                                }
+                                $secondTermMarksByStudentSubject[$key] += $entry->exam_marks;
+                            }
+                            break 2; // break both loops once we find the match
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Create student roll number lookup
+        $studentRollNumbers = [];
+        $allStudents = Studentcr::where('myclass_id', $classId)->get();
+        foreach ($allStudents as $stud) {
+            $studentRollNumbers[$stud->id] = $stud->roll_no;
+        }
+        
+        // Calculate highest total marks per subject for first term
+        $subjectTotalsFirst = [];
+        foreach ($firstTermMarksByStudentSubject as $key => $totalMarks) {
+            $parts = explode('_', $key);
+            $studentId = $parts[0];
+            $subjectId = $parts[1];
+            
+            if (!isset($subjectTotalsFirst[$subjectId])) {
+                $subjectTotalsFirst[$subjectId] = [];
+            }
+            $subjectTotalsFirst[$subjectId][] = ['marks' => $totalMarks, 'student_id' => $studentId];
+        }
+        
+        foreach ($subjectTotalsFirst as $subjectId => $totals) {
+            // Find the entry with the highest marks
+            $maxEntry = null;
+            foreach ($totals as $entry) {
+                if (!$maxEntry || $entry['marks'] > $maxEntry['marks']) {
+                    $maxEntry = $entry;
+                }
+            }
+            if ($maxEntry) {
+                $highestFirstTermMarksBySubject[$subjectId] = $maxEntry['marks'];
+                $highestFirstTermRollNosBySubject[$subjectId] = $studentRollNumbers[$maxEntry['student_id']] ?? 'N/A';
+            }
+        }
+        
+        // Calculate highest total marks per subject for second term
+        $subjectTotalsSecond = [];
+        foreach ($secondTermMarksByStudentSubject as $key => $totalMarks) {
+            $parts = explode('_', $key);
+            $studentId = $parts[0];
+            $subjectId = $parts[1];
+            
+            if (!isset($subjectTotalsSecond[$subjectId])) {
+                $subjectTotalsSecond[$subjectId] = [];
+            }
+            $subjectTotalsSecond[$subjectId][] = ['marks' => $totalMarks, 'student_id' => $studentId];
+        }
+        
+        foreach ($subjectTotalsSecond as $subjectId => $totals) {
+            // Find the entry with the highest marks
+            $maxEntry = null;
+            foreach ($totals as $entry) {
+                if (!$maxEntry || $entry['marks'] > $maxEntry['marks']) {
+                    $maxEntry = $entry;
+                }
+            }
+            if ($maxEntry) {
+                $highestSecondTermMarksBySubject[$subjectId] = $maxEntry['marks'];
+                $highestSecondTermRollNosBySubject[$subjectId] = $studentRollNumbers[$maxEntry['student_id']] ?? 'N/A';
+            }
+        }
+        
         $data = [
             'school' => $school,
             'activeClass' => $activeClass,
@@ -157,6 +400,10 @@ class ExamMarksPdfController extends Controller
             'classSubjects' => $classSubjects,
             'examClassSubjectMap' => $examClassSubjectMap,
             'marksData' => $marksData,
+            'highestFirstTermMarksBySubject' => $highestFirstTermMarksBySubject,
+            'highestSecondTermMarksBySubject' => $highestSecondTermMarksBySubject,
+            'highestFirstTermRollNosBySubject' => $highestFirstTermRollNosBySubject,
+            'highestSecondTermRollNosBySubject' => $highestSecondTermRollNosBySubject,
         ];
         $config = [
             'format' => 'A4-L' // 'A4-L' for landscape, 'A4-P' for portrait
