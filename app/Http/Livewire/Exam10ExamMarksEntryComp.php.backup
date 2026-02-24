@@ -61,41 +61,41 @@ class Exam10ExamMarksEntryComp extends Component
     public function loadData()
     {
         // Cache static reference data for 1 hour
-        $this->classes = Cache::remember('exam_classes', 3600, function () {
+        $this->classes = Cache::remember('exam_classes', 3600, function() {
             return Myclass::orderBy('id')->get();
         });
-
-        $this->subjectTypes = Cache::remember('subject_types', 3600, function () {
+        
+        $this->subjectTypes = Cache::remember('subject_types', 3600, function() {
             return SubjectType::orderBy('name')->get();
         });
-
-        $this->examNames = Cache::remember('exam_names', 3600, function () {
+        
+        $this->examNames = Cache::remember('exam_names', 3600, function() {
             return Exam01Name::orderBy('id')->get();
         });
-
-        $this->examTypes = Cache::remember('exam_types', 3600, function () {
+        
+        $this->examTypes = Cache::remember('exam_types', 3600, function() {
             return Exam02Type::orderBy('name')->get();
         });
-
-        $this->examParts = Cache::remember('exam_parts', 3600, function () {
+        
+        $this->examParts = Cache::remember('exam_parts', 3600, function() {
             return Exam03Part::orderBy('name')->get();
         });
-
-        $this->sessions = Cache::remember('sessions', 3600, function () {
+        
+        $this->sessions = Cache::remember('sessions', 3600, function() {
             return Session::orderBy('name')->get();
         });
-
-        $this->schools = Cache::remember('schools', 3600, function () {
+        
+        $this->schools = Cache::remember('schools', 3600, function() {
             return School::orderBy('name')->get();
         });
-
-        $this->users = Cache::remember('users', 3600, function () {
+        
+        $this->users = Cache::remember('users', 3600, function() {
             return User::orderBy('name')->get();
         });
-
+        
         // Load sections only when needed
         $this->sections = collect();
-
+        
         // Don't load all examClassSubjects and existingEntries at once
         $this->examClassSubjects = collect();
         $this->existingEntries = collect();
@@ -105,31 +105,25 @@ class Exam10ExamMarksEntryComp extends Component
     {
         // Clear existing form data
         $this->formData = [];
-
-        // Load form data based on current selections
-        if (isset($this->classes[$this->activeTab]) && $this->selectedExamNameId && $this->selectedExamTypeId) {
+        
+        // Load form data for the active class regardless of validation state
+        if (isset($this->classes[$this->activeTab])) {
             $classId = $this->classes[$this->activeTab]->id;
-
-            $query = Exam10MarksEntry::whereHas('examDetail', function ($q) use ($classId) {
-                $q->where('myclass_id', $classId)
-                    ->where('exam_name_id', $this->selectedExamNameId)
-                    ->where('exam_type_id', $this->selectedExamTypeId);
-            });
-
-            if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') {
-                $query->whereHas('examClassSubject', function ($q) {
-                    $q->where('subject_id', $this->selectedSubjectId);
-                });
-            }
-
-            $existingRecords = $query->with(['examClassSubject', 'examDetail'])->get();
-
+            
+            // Load ALL exam marks entries for current class without any filters
+            $existingRecords = Exam10MarksEntry::whereHas('myclassSection', function($query) use ($classId) {
+                $query->where('myclass_id', $classId);
+            })
+            ->with(['examClassSubject', 'examDetail', 'studentcr'])
+            ->limit(1000)
+            ->get();
+            
+            // Log the number of records found
+            Log::info('Exam10ExamMarksEntryComp: Found ' . $existingRecords->count() . ' existing records for class ' . $classId);
+            
             foreach ($existingRecords as $record) {
-                // Use subject_id in the key instead of exam_class_subject_id for easier matching in blade
-                $subjectId = $record->examClassSubject->subject_id ?? null;
-                if (!$subjectId) continue;
-
-                $key = $record->myclass_section_id . '_' . $record->studentcr_id . '_' . $subjectId . '_' . $record->exam_detail_id;
+                $key = $record->myclass_section_id . '_' . $record->studentcr_id . '_' . $record->exam_class_subject_id . '_' . $record->exam_detail_id;
+                Log::info('Exam10ExamMarksEntryComp: Processing record with key: ' . $key . ', marks: ' . $record->exam_marks);
                 $this->formData[$key] = [
                     'marks' => $record->exam_marks == -99 ? null : $record->exam_marks,
                     'is_absent' => $record->exam_marks == -99 || $record->is_absent,
@@ -157,7 +151,7 @@ class Exam10ExamMarksEntryComp extends Component
 
     public function getClassSections($classId)
     {
-        return Cache::remember("class_sections_{$classId}", 1800, function () use ($classId) {
+        return Cache::remember("class_sections_{$classId}", 1800, function() use ($classId) {
             return MyclassSection::where('myclass_id', $classId)
                 ->with(['section'])
                 ->orderBy('section_id')
@@ -168,7 +162,7 @@ class Exam10ExamMarksEntryComp extends Component
 
     public function getStudentsInSection($myclassSectionId)
     {
-        return Cache::remember("students_in_section_{$myclassSectionId}", 1800, function () use ($myclassSectionId) {
+        return Cache::remember("students_in_section_{$myclassSectionId}", 1800, function() use ($myclassSectionId) {
             // First get the MyclassSection record to get myclass_id and section_id
             $myclassSection = MyclassSection::find($myclassSectionId);
 
@@ -204,7 +198,7 @@ class Exam10ExamMarksEntryComp extends Component
             $classId = $this->classes[$this->activeTab]->id;
 
             // Fetch subjects based on Class, Exam Name, and Exam Type with caching
-            $this->filteredSubjects = Cache::remember("filtered_subjects_{$classId}_{$this->selectedExamNameId}_{$this->selectedExamTypeId}", 1800, function () use ($classId) {
+            $this->filteredSubjects = Cache::remember("filtered_subjects_{$classId}_{$this->selectedExamNameId}_{$this->selectedExamTypeId}", 1800, function() use ($classId) {
                 return Exam06ClassSubject::where('myclass_id', $classId)
                     ->whereHas('examDetail', function ($q) {
                         $q->where('exam_name_id', $this->selectedExamNameId)
@@ -231,7 +225,6 @@ class Exam10ExamMarksEntryComp extends Component
     {
         $this->selectedSubjectId = $subjectId;
         $this->checkValidation();
-        $this->initializeFormData();
     }
 
     public function checkValidation()
@@ -279,7 +272,7 @@ class Exam10ExamMarksEntryComp extends Component
         if ($this->selectedExamTypeId) $cacheKey .= "_type_{$this->selectedExamTypeId}";
         if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') $cacheKey .= "_subject_{$this->selectedSubjectId}";
 
-        return Cache::remember($cacheKey, 1800, function () use ($classId) {
+        return Cache::remember($cacheKey, 1800, function() use ($classId) {
             $query = Exam05Detail::where('myclass_id', $classId)
                 ->with(['examName', 'examType', 'examPart', 'examMode']);
 
@@ -311,7 +304,7 @@ class Exam10ExamMarksEntryComp extends Component
         if ($this->selectedExamTypeId) $cacheKey .= "_type_{$this->selectedExamTypeId}";
         if ($this->selectedSubjectId && $this->selectedSubjectId !== 'all') $cacheKey .= "_subject_{$this->selectedSubjectId}";
 
-        return Cache::remember($cacheKey, 1800, function () use ($classId) {
+        return Cache::remember($cacheKey, 1800, function() use ($classId) {
             $query = Exam06ClassSubject::where('myclass_id', $classId)
                 ->with(['myclass', 'subject', 'examDetail.examName', 'examDetail.examType', 'examDetail.examPart']);
 
@@ -340,36 +333,37 @@ class Exam10ExamMarksEntryComp extends Component
     public function saveAllEntriesForSubject($sectionId, $examClassSubjectId)
     {
         $savedCount = 0;
-        $base = Exam06ClassSubject::find($examClassSubjectId);
-        if (!$base) return;
-        $subjectId = $base->subject_id;
-
         foreach ($this->formData as $key => $data) {
             $parts = explode('_', $key);
             if (count($parts) === 4) {
-                [$kSectionId, $studentId, $kSubjectId, $examPartId] = $parts;
-                if ((string)$kSectionId === (string)$sectionId && (string)$kSubjectId === (string)$subjectId) {
-
-                    $examClassSubject = Exam06ClassSubject::where('myclass_id', $base->myclass_id)
-                        ->where('subject_id', $subjectId)
-                        ->where('exam_detail_id', $examPartId)
-                        ->first();
-
-                    if (!$examClassSubject) continue;
-
+                [$kSectionId, $studentId, $kExamClassSubjectId, $examPartId] = $parts;
+                if ((string)$kSectionId === (string)$sectionId && (string)$kExamClassSubjectId === (string)$examClassSubjectId) {
                     $gradeId = null;
                     if (!empty($data['marks']) && !($data['is_absent'] ?? false)) {
                         $marks = $data['marks'];
-                        $gradeName = \App\Models\Exam08Grade::calculateGrade($marks, 'summative', $subjectId, $examClassSubject->full_marks);
-                        $grade = \App\Models\Exam08Grade::where('name', $gradeName)->first();
-                        $gradeId = $grade->id ?? null;
+                        if ($marks >= 90) {
+                            $gradeId = 1;
+                        } elseif ($marks >= 80) {
+                            $gradeId = 2;
+                        } elseif ($marks >= 70) {
+                            $gradeId = 3;
+                        } elseif ($marks >= 60) {
+                            $gradeId = 4;
+                        } elseif ($marks >= 50) {
+                            $gradeId = 5;
+                        } else {
+                            $gradeId = 6;
+                        }
                     }
-
+                    $resolvedExamClassSubjectId = \App\Models\Exam06ClassSubject::resolveForExamDetail($examClassSubjectId, $examPartId);
+                    if (!$resolvedExamClassSubjectId) {
+                        continue;
+                    }
                     Exam10MarksEntry::updateOrCreate(
                         [
                             'myclass_section_id' => $sectionId,
                             'studentcr_id' => $studentId,
-                            'exam_class_subject_id' => $examClassSubject->id,
+                            'exam_class_subject_id' => $resolvedExamClassSubjectId,
                             'exam_detail_id' => $examPartId
                         ],
                         [
@@ -378,9 +372,9 @@ class Exam10ExamMarksEntryComp extends Component
                             'is_absent' => $data['is_absent'] ?? false,
                             'order_index' => $data['order_index'] ?? 0,
                             'is_optional' => $data['is_optional'] ?? false,
-                            'session_id' => $data['session_id'] ?? $this->sessions->first()->id ?? null,
-                            'school_id' => $data['school_id'] ?? $this->schools->first()->id ?? null,
-                            'user_id' => $data['user_id'] ?? auth()->id(),
+                            'session_id' => $data['session_id'] ?? null,
+                            'school_id' => $data['school_id'] ?? null,
+                            'user_id' => $data['user_id'] ?? null,
                             'approved_by' => $data['approved_by'] ?? null,
                             'is_active' => $data['is_active'] ?? true,
                             'is_finalized' => $data['is_finalized'] ?? false,
@@ -394,7 +388,8 @@ class Exam10ExamMarksEntryComp extends Component
         }
         session()->flash('message', "$savedCount record(s) saved for subject.");
         $this->emit('refreshComponent');
-        $this->initializeFormData();
+        // Clear relevant cache
+        Cache::forget("students_in_section_{$sectionId}");
     }
 
     public function getExistingEntry($myclassSectionId, $examClassSubjectId)
@@ -560,39 +555,38 @@ class Exam10ExamMarksEntryComp extends Component
     public function saveAllEntries()
     {
         $savedCount = 0;
-        $classId = $this->classes[$this->activeTab]->id ?? null;
-        if (!$classId) return;
 
         foreach ($this->formData as $key => $data) {
-            // Parse the key to get section_id, student_id, subject_id and exam_part_id
+            // Parse the key to get section_id, student_id, exam_class_subject_id and exam_part_id
             $parts = explode('_', $key);
             if (count($parts) === 4) {
-                [$sectionId, $studentId, $subjectId, $examPartId] = $parts;
-
-                // Resolve the specific Exam06ClassSubject ID for this subject and part
-                $examClassSubject = Exam06ClassSubject::where('myclass_id', $classId)
-                    ->where('subject_id', $subjectId)
-                    ->where('exam_detail_id', $examPartId)
-                    ->first();
-
-                if (!$examClassSubject) continue;
+                [$sectionId, $studentId, $examClassSubjectId, $examPartId] = $parts;
 
                 // Calculate grade automatically based on marks (simplified logic)
                 $gradeId = null;
                 if (!empty($data['marks']) && !($data['is_absent'] ?? false)) {
                     $marks = $data['marks'];
-                    // Use calculateGrade from Exam08Grade if possible, otherwise fallback
-                    $gradeName = \App\Models\Exam08Grade::calculateGrade($marks, 'summative', $subjectId, $examClassSubject->full_marks);
-                    $grade = \App\Models\Exam08Grade::where('name', $gradeName)->first();
-                    $gradeId = $grade->id ?? null;
+                    if ($marks >= 90) {
+                        $gradeId = 1; // A+ grade
+                    } elseif ($marks >= 80) {
+                        $gradeId = 2; // A grade
+                    } elseif ($marks >= 70) {
+                        $gradeId = 3; // B grade
+                    } elseif ($marks >= 60) {
+                        $gradeId = 4; // C grade
+                    } elseif ($marks >= 50) {
+                        $gradeId = 5; // D grade
+                    } else {
+                        $gradeId = 6; // F grade
+                    }
                 }
 
                 // Save to Exam10MarksEntry table
-                Exam10MarksEntry::updateOrCreate(
+                $record = Exam10MarksEntry::updateOrCreate(
                     [
                         'myclass_section_id' => $sectionId,
                         'studentcr_id' => $studentId,
-                        'exam_class_subject_id' => $examClassSubject->id,
+                        'exam_class_subject_id' => $examClassSubjectId,
                         'exam_detail_id' => $examPartId
                     ],
                     [
@@ -601,9 +595,9 @@ class Exam10ExamMarksEntryComp extends Component
                         'is_absent' => $data['is_absent'] ?? false,
                         'order_index' => $data['order_index'] ?? 0,
                         'is_optional' => $data['is_optional'] ?? false,
-                        'session_id' => $data['session_id'] ?? $this->sessions->first()->id ?? null,
-                        'school_id' => $data['school_id'] ?? $this->schools->first()->id ?? null,
-                        'user_id' => $data['user_id'] ?? auth()->id(),
+                        'session_id' => $data['session_id'] ?? null,
+                        'school_id' => $data['school_id'] ?? null,
+                        'user_id' => $data['user_id'] ?? null,
                         'approved_by' => $data['approved_by'] ?? null,
                         'is_active' => $data['is_active'] ?? true,
                         'is_finalized' => $data['is_finalized'] ?? false,
@@ -618,7 +612,8 @@ class Exam10ExamMarksEntryComp extends Component
 
         session()->flash('message', "$savedCount record(s) saved successfully.");
         $this->emit('refreshComponent');
-        $this->initializeFormData();
+        // Clear relevant caches
+        Cache::forget('exam_classes');
     }
 
     public function clearMarks($cellKey)

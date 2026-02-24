@@ -210,8 +210,8 @@
                                                                 <!-- Exam Class Subjects Cells -->
                                                                 @foreach($examClassSubjects as $examClassSubject)
                                                                     @php
-                                                                        // Use exam_detail_id for consistency with database storage
-                                                                        $cellKey = $section->id . '_' . $student->id . '_' . $examClassSubject->id . '_' . $examPart->id;
+                                                                        // Use subject_id and exam_detail_id for consistency with database storage
+                                                                        $cellKey = $section->id . '_' . $student->id . '_' . $examClassSubject->subject_id . '_' . $examPart->id;
                                                                     @endphp
                                                                     <td class="px-6 py-4 border border-gray-200 bg-white @if(!$isValidationPassed) opacity-50 cursor-not-allowed @endif">
                                                                         @if($isValidationPassed)

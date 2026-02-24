@@ -13,7 +13,7 @@ use App\Models\Exam03Part;
 use App\Models\Exam06ClassSubject;
 use App\Models\Exam10MarksEntry;
 use App\Models\MyclassSubject;
-use PDF;
+
 
 class Exam12ExamMarkRegisterComp extends Component
 {
@@ -114,16 +114,14 @@ class Exam12ExamMarkRegisterComp extends Component
         $marksEntries = Exam10MarksEntry::whereIn('myclass_section_id', $sectionIds)
             ->get();
 
-        // Map marks to a key: student_id_exam_class_subject_id
+        // Map marks to a key: student_id_exam_class_subject_id (original format)
         foreach ($marksEntries as $entry) {
-            // We use a composite key for direct access in the view
+            // We use the original key format for compatibility
             // Key: {student_id}_{exam_class_subject_id}
             $key = $entry->studentcr_id . '_' . $entry->exam_class_subject_id;
             $this->marksData[$key] = [
                 'exam_marks' => $entry->exam_marks,
                 'is_absent' => $entry->is_absent,
-                // store original values to detect changes if needed, 
-                // but for now simple binding is enough
             ];
         }
     }
@@ -254,7 +252,7 @@ class Exam12ExamMarkRegisterComp extends Component
             'marksData' => $this->marksData,
         ];
 
-        $pdf = PDF::loadView('exports.exam12-pdf', $data, [], [
+        $pdf = \PDF::loadView('exports.exam12-pdf', $data, [], [
             'orientation' => 'L'
         ]);
 
