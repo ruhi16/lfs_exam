@@ -1101,63 +1101,98 @@
             
             </td>
             
-            <!-- Right Column -->
-            <td style="width: 50%; padding: 20px; vertical-align: top;">
-            
-            <!-- School Information -->
-            <div style="margin-bottom: 30px; text-align: center;">
-                <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">{{ $school->name ?? 'School Name' }}</div>
-                <div style="font-size: 12px; margin-bottom: 5px;">{{ $school->vill ?? '' }}{{ $school->po ? ', ' . $school->po : '' }}{{ $school->dist ? ', ' . $school->dist : '' }}</div>
-                <div style="font-size: 12px; margin-bottom: 15px;">{{ $school->state ?? '' }}{{ $school->pin ? ' - ' . $school->pin : '' }}</div>
-                
-                <!-- School Logo Area -->
-                <div style="margin: 20px 0; height: 100px; display: flex; align-items: center; justify-content: center; border: 1px dashed #ccc;">
-                    <div style="color: #999; font-style: italic;">School Logo</div>
+            <td style="width: 50%; padding: 20px; vertical-align: top; font-family: 'Times New Roman', Times, serif;">
+    
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <div style="font-size: 26px; font-weight: bold; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">
+                        {{ $school->name ?? 'School Name' }}
+                    </div>
+                    
+                    <div style="font-size: 13px; color: #444; line-height: 1.4; font-style: italic;">
+                        {{ $school->vill ?? '' }}{{ $school->po ? ', ' . $school->po : '' }}<br/>
+                        {{ $school->dist ? ', ' . $school->dist : '' }}
+                        {{ $school->state ?? '' }}{{ $school->pin ? ' - ' . $school->pin : '' }}
+                    </div>
+
+                    <div style="background-color: #ffffff; color: #000000; padding: 10px 0; font-size: 16px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; border-radius: 4px; margin-top: 10px;">
+                        English Medium School
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        {{ asset('storage/' . $school->logo) }}
+                        @if($school->logo)
+                            <img src="{{ asset('storage/' . $school->logo) }}" alt="Logo" style="height: 100px; width: auto; object-fit: contain;">
+                            
+                        @else
+                            <div style="height: 100px; width: 100px; border: 2px solid #333; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                <span style="font-size: 40px; color: #333;">&#127891;</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    <div style="background-color: #ffffff; color: #000000; padding: 10px 0; font-size: 16px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; border-radius: 4px; margin-top: 10px;">
+                        Estd 2018
+                    </div>
+
+                    <br/>
+
+                    <br/>
+                    <br/>
+                    <br/>
+                    <br/>
+                    <br/>
+                    <br/>
+                    <br/>
+
+                    <div style="background-color: #1a1a1a; color: #ffffff; padding: 10px 0; font-size: 22px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; border-radius: 4px; margin-top: 10px;">
+                        Progress Report
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Student Details -->
-            <div>
-                <div style="background-color: #e5e7eb; padding: 8px; font-weight: bold; border: 1px solid #ccc; border-bottom: none; text-align: center;">
-                    Student Details
-                </div>
-                <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 8px; width: 40%; font-weight: bold;">Name:</td>
-                        <td style="border: 1px solid #ccc; padding: 8px;">{{ $student->studentdb->name ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">Address:</td>
-                        <td style="border: 1px solid #ccc; padding: 8px;">{{ $student->studentdb->address ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">Class:</td>
-                        <td style="border: 1px solid #ccc; padding: 8px;">{{ $student->myClass->name ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">Section:</td>
-                        <td style="border: 1px solid #ccc; padding: 8px;">{{ optional($student->section)->name ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">Roll No:</td>
-                        <td style="border: 1px solid #ccc; padding: 8px;">{{ $student->roll_no ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">Reg No:</td>
-                        <td style="border: 1px solid #ccc; padding: 8px;">{{ $student->studentdb->reg_no ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">Session:</td>
-                        <td style="border: 1px solid #ccc; padding: 8px;">{{ $school->activeSession->first()->name ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">House:</td>
-                        <td style="border: 1px solid #ccc; padding: 8px;">{{ $student->studentdb->house ?? 'N/A' }}</td>
-                    </tr>
-                </table>
-            </div>
-            
+                <br/><br/>
+
+                <div style="margin-top: 10px;">
+    <div style="background-color: #333; color: #fff; padding: 10px; font-weight: bold; border: 1px solid #333; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; text-align: center;">
+        Student Identification
+    </div>
+    <br/>
+    
+    <table style="width: 100%; border-collapse: collapse; font-family: 'Times New Roman', Times, serif;">
+        <tr>
+            <td style="border: 1px solid #aaa; padding: 10px; width: 35%; font-weight: bold; background-color: #f9f9f9; color: #333;">Full Name:</td>
+            <td style="border: 1px solid #aaa; padding: 10px; font-size: 14px; text-transform: uppercase; font-weight: bold;">{{ $student->studentdb->name ?? 'N/A' }}</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #aaa; padding: 10px; font-weight: bold; background-color: #f9f9f9; color: #333;">Permanent Address:</td>
+            <td style="border: 1px solid #aaa; padding: 10px; font-size: 12px; line-height: 1.4;">{{ $student->studentdb->address ?? 'N/A' }}</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #aaa; padding: 10px; font-weight: bold; background-color: #f9f9f9; color: #333;">Class & Section:</td>
+            <td style="border: 1px solid #aaa; padding: 10px;">{{ $student->myClass->name ?? 'N/A' }} ({{ optional($student->section)->name ?? 'N/A' }})</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #aaa; padding: 10px; font-weight: bold; background-color: #f9f9f9; color: #333;">Roll & Registration:</td>
+            <td style="border: 1px solid #aaa; padding: 10px;">
+                <strong>Roll:</strong> {{ $student->roll_no ?? 'N/A' }} &nbsp; | &nbsp; <strong>Reg:</strong> {{ $student->studentdb->reg_no ?? 'N/A' }}
             </td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #aaa; padding: 10px; font-weight: bold; background-color: #f9f9f9; color: #333;">Academic Session:</td>
+            <td style="border: 1px solid #aaa; padding: 10px;">{{ $school->activeSession->first()->name ?? 'N/A' }}</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #aaa; padding: 10px; font-weight: bold; background-color: #f9f9f9; color: #333;">House / Group:</td>
+            <td style="border: 1px solid #aaa; padding: 10px;">{{ $student->studentdb->house ?? 'N/A' }}</td>
+        </tr>
+    </table>
+</div>
+
+            </td>
+
+
+
+
+
+
         </tr>
     </table>
     

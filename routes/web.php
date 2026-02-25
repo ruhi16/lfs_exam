@@ -16,7 +16,15 @@ use App\Http\Livewire\UserDashboardContainerComp;
 use Illuminate\Support\Facades\Artisan;
 
 
-
+Route::get('/clear', function () {
+    Artisan::call('optimize:clear'); // Clear optimized files
+    Artisan::call('cache:clear'); // Clear cache
+    Artisan::call('config:clear'); // Clear config cache
+    Artisan::call('route:clear'); // Clear route cache
+    Artisan::call('view:clear'); // Clear view cache
+    Artisan::call('presigned:clear'); // Clear presigned URLs cache 
+    return "Cache cleared successfully!";
+});
 
 
 
