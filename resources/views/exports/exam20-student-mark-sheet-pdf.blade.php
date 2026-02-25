@@ -261,7 +261,8 @@
                         </thead>
                         <tbody>
                             @php $firstHalfTotalMarks = 0;
-                            $firstHalfTotalFull = 0; @endphp
+                            $firstHalfTotalFull = 0;
+                            $firstHalfExamTermSubTotals = []; @endphp
                             @foreach($summativeSubjects as $ms)
                                 @php
                                     $subjectFirstHalfMarks = 0;
@@ -291,6 +292,11 @@
                                                             $fm = intval($mapping['full_marks'] ?? 0);
                                                             $subjectFirstHalfMarks += $rounded;
                                                             $subjectFirstHalfFull += $fm;
+                                                            if (!isset($firstHalfExamTermSubTotals[$examNameId])) {
+                                                                $firstHalfExamTermSubTotals[$examNameId] = ['marks' => 0, 'full' => 0];
+                                                            }
+                                                            $firstHalfExamTermSubTotals[$examNameId]['marks'] += $rounded;
+                                                            $firstHalfExamTermSubTotals[$examNameId]['full'] += $fm;
                                                         @endphp
                                                         <span style="font-weight: bold;">{{ $rounded }}</span>
                                                     @else
@@ -318,9 +324,13 @@
                             @endforeach
                             <tr>
                                 <td class="text-left"><strong>Grand Total</strong></td>
-                                @for($i = 0; $i < $firstHalfCols; $i++)
-                                    <td>-</td>
-                                @endfor
+                                @foreach($firstHalfExams as $examNameId => $examParts)
+                                    @php
+                                        $termMarks = $firstHalfExamTermSubTotals[$examNameId]['marks'] ?? 0;
+                                        $termFull = $firstHalfExamTermSubTotals[$examNameId]['full'] ?? 0;
+                                    @endphp
+                                    <td colspan="{{ count($examParts) }}"><strong>{{ $termMarks }} / {{ $termFull }}</strong></td>
+                                @endforeach
                                 <td><strong>{{ $firstHalfTotalMarks }} / {{ $firstHalfTotalFull }}</strong></td>
                                 <td></td>
                                 <td></td>
@@ -462,7 +472,8 @@
                         </thead>
                         <tbody>
                             @php $secondHalfTotalMarks = 0;
-                            $secondHalfTotalFull = 0; @endphp
+                            $secondHalfTotalFull = 0;
+                            $secondHalfExamTermSubTotals = []; @endphp
                             @foreach($summativeSubjects as $ms)
                                 @php
                                     $subjectSecondHalfMarks = 0;
@@ -492,6 +503,11 @@
                                                             $fm = intval($mapping['full_marks'] ?? 0);
                                                             $subjectSecondHalfMarks += $rounded;
                                                             $subjectSecondHalfFull += $fm;
+                                                            if (!isset($secondHalfExamTermSubTotals[$examNameId])) {
+                                                                $secondHalfExamTermSubTotals[$examNameId] = ['marks' => 0, 'full' => 0];
+                                                            }
+                                                            $secondHalfExamTermSubTotals[$examNameId]['marks'] += $rounded;
+                                                            $secondHalfExamTermSubTotals[$examNameId]['full'] += $fm;
                                                         @endphp
                                                         <span style="font-weight: bold;">{{ $rounded }}</span>
                                                     @else
@@ -519,9 +535,13 @@
                             @endforeach
                             <tr>
                                 <td class="text-left"><strong>Grand Total</strong></td>
-                                @for($i = 0; $i < $secondHalfCols; $i++)
-                                    <td>-</td>
-                                @endfor
+                                @foreach($secondHalfExams as $examNameId => $examParts)
+                                    @php
+                                        $termMarks = $secondHalfExamTermSubTotals[$examNameId]['marks'] ?? 0;
+                                        $termFull = $secondHalfExamTermSubTotals[$examNameId]['full'] ?? 0;
+                                    @endphp
+                                    <td colspan="{{ count($examParts) }}"><strong>{{ $termMarks }} / {{ $termFull }}</strong></td>
+                                @endforeach
                                 <td><strong>{{ $secondHalfTotalMarks }} / {{ $secondHalfTotalFull }}</strong></td>
                                 <td></td>
                                 <td></td>
@@ -533,401 +553,11 @@
         </tr>
     </table>
 
-    {{--
-    @if($summativeSubjects->count() && count($firstHalfExams) > 0)
-    <div class="section-title">Summative Subjects - First Term & Half Yearly</div>
-    <table class="no-break">
-        <thead>
-            <tr>
-                <th class="text-left">Subject</th>
-                @foreach($firstHalfExams as $examNameId => $examParts)
-                @php
-                $examName = \App\Models\Exam01Name::find($examNameId);
-                $colspan = count($examParts);
-                @endphp
-                <th colspan="{{ $colspan }}">{{ $examName->name ?? 'Exam' }}</th>
-                @endforeach
-                <th>Total Marks</th>
-                <th>Grade</th>
-            </tr>
-            <tr>
-                <th class="text-left">-</th>
-                @foreach($firstHalfExams as $examNameId => $examParts)
-                @foreach($examParts as $examPartId => $details)
-                @php
-                $examPart = \App\Models\Exam03Part::find($examPartId);
-                @endphp
-                <th>
-                    <div class="muted">{{ $examPart->name ?? 'Part' }}</div>
-                </th>
-                @endforeach
-                @endforeach
-                <th>-</th>
-                <th>-</th>
-            </tr>
-        </thead>
-        <tbody>
-            @php $firstHalfTotalMarks = 0; $firstHalfTotalFull = 0; @endphp
-            @foreach($summativeSubjects as $ms)
-            @php
-            $subjectFirstHalfMarks = 0;
-            $subjectFirstHalfFull = 0;
-            @endphp
-            <tr>
-                <td class="text-left">
-                    <div>{{ optional($ms->subject)->name ?? 'Subject' }}</div>
-                </td>
-                @foreach($firstHalfExams as $examNameId => $examParts)
-                @foreach($examParts as $examPartId => $details)
-                @php
-                $selectedDetail = collect($details)->first(function($d){
-                return optional($d->examType)->name === 'Summative';
-                }) ?? collect($details)->first();
-                $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) :
-                null;
-                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
-                $entry = $key ? ($marksData[$key] ?? null) : null;
-                @endphp
-                <td>
-                    @if($mapping)
-                    @if(isset($entry['is_absent']) && $entry['is_absent'])
-                    <span style="color: red; font-weight: bold;">AB</span>
-                    @elseif(isset($entry['exam_marks']) && $entry['exam_marks'] !== null)
-                    @php
-                    $rounded = intval(round($entry['exam_marks']));
-                    $fm = intval($mapping['full_marks'] ?? 0);
-                    $subjectFirstHalfMarks += $rounded;
-                    $subjectFirstHalfFull += $fm;
-                    @endphp
-                    <span style="font-weight: bold;">{{ $rounded }}</span>
-                    @else
-                    -
-                    @endif
-                    @else
-                    <span class="muted">N/A</span>
-                    @endif
-                </td>
-                @endforeach
-                @endforeach
-                @php
-                $subjectGrade = '';
-                if($subjectFirstHalfFull > 0){
-                $subjectGrade = \App\Models\Exam08Grade::calculateGrade($subjectFirstHalfMarks, 'summative',
-                $ms->subject_id, $subjectFirstHalfFull);
-                }
-                @endphp
-                @php $firstHalfTotalMarks += $subjectFirstHalfMarks; $firstHalfTotalFull += $subjectFirstHalfFull;
-                @endphp
-                <td>{{ $subjectFirstHalfMarks }} / {{ $subjectFirstHalfFull }}</td>
-                <td>{{ $subjectGrade }}</td>
-            </tr>
-            @endforeach
-            <tr>
-                <td class="text-left"><strong>Grand Total</strong></td>
-                @for($i=0; $i < $firstHalfCols; $i++) <td>-</td>
-                    @endfor
-                    <td><strong>{{ $firstHalfTotalMarks }} / {{ $firstHalfTotalFull }}</strong></td>
-                    <td></td>
-            </tr>
-        </tbody>
-    </table>
-    @endif
-
-    @if($formativeSubjects->count())
-    <div class="section-title">Formative Subjects - Consolidated (All Terms)</div>
-    <table class="no-break">
-        <thead>
-            <tr>
-                <th class="text-left">Subject</th>
-                @foreach($examDetailsGrouped as $examNameId => $examParts)
-                @php
-                $examName = \App\Models\Exam01Name::find($examNameId);
-                $partsForCol = collect($examParts)->filter(function($details){
-                return collect($details)->contains(function($d){
-                return optional($d->examType)->name === 'Formative';
-                });
-                });
-                $colspan = $partsForCol->count();
-                @endphp
-                @if($colspan > 0)
-                <th colspan="{{ $colspan }}">{{ $examName->name ?? 'Exam' }}</th>
-                @endif
-                @endforeach
-            </tr>
-            <tr>
-                <th class="text-left">-</th>
-                @foreach($examDetailsGrouped as $examNameId => $examParts)
-                @php
-                $partsForCol = collect($examParts)->filter(function($details){
-                return collect($details)->contains(function($d){
-                return optional($d->examType)->name === 'Formative';
-                });
-                });
-                @endphp
-                @foreach($partsForCol as $examPartId => $details)
-                @php
-                $examPart = \App\Models\Exam03Part::find($examPartId);
-                @endphp
-                <th>
-                    <div class="muted">{{ $examPart->name ?? 'Part' }}</div>
-                </th>
-                @endforeach
-                @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            @php $formGrandMarks = 0; $formGrandFull = 0; @endphp
-            @foreach($formativeSubjects as $ms)
-            <tr>
-                <td class="text-left">
-                    <div>{{ optional($ms->subject)->name ?? 'Subject' }}</div>
-                </td>
-                @foreach($examDetailsGrouped as $examNameId => $examParts)
-                @php
-                $partsForCol = collect($examParts)->filter(function($details){
-                return collect($details)->contains(function($d){
-                return optional($d->examType)->name === 'Formative';
-                });
-                });
-                @endphp
-                @foreach($partsForCol as $examPartId => $details)
-                @php
-                $selectedDetail = collect($details)->first(function($d){
-                return optional($d->examType)->name === 'Formative';
-                }) ?? collect($details)->first();
-                $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) :
-                null;
-                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
-                $entry = $key ? ($marksData[$key] ?? null) : null;
-                @endphp
-                <td>
-                    @if($mapping)
-                    @if(isset($entry['is_absent']) && $entry['is_absent'])
-                    <span style="color: red; font-weight: bold;">AB</span>
-                    @elseif(isset($entry['exam_marks']) && $entry['exam_marks'] !== null)
-                    @php
-                    $roundedF = intval(round($entry['exam_marks']));
-                    $fmF = intval($mapping['full_marks'] ?? 0);
-                    $formGrandMarks += $roundedF;
-                    $formGrandFull += $fmF;
-                    $gradeF = $fmF > 0 ? \App\Models\Exam08Grade::calculateGrade($roundedF, 'formative',
-                    $ms->subject_id, $fmF) : '';
-                    @endphp
-                    <span style="font-weight: bold;">{{ $roundedF }}</span>@if($gradeF) <span class="muted">({{ $gradeF
-                        }})</span>@endif
-                    @else
-                    -
-                    @endif
-                    @else
-                    <span class="muted">N/A</span>
-                    @endif
-                </td>
-                @endforeach
-                @endforeach
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-
-    @if($summativeSubjects->count() && count($secondHalfExams) > 0)
-    <div class="section-title">Summative Subjects - 2nd Term & Annual</div>
-    <table class="no-break">
-        <thead>
-            <tr>
-                <th class="text-left">Subject</th>
-                @foreach($secondHalfExams as $examNameId => $examParts)
-                @php
-                $examName = \App\Models\Exam01Name::find($examNameId);
-                $colspan = count($examParts);
-                @endphp
-                <th colspan="{{ $colspan }}">{{ $examName->name ?? 'Exam' }}</th>
-                @endforeach
-                <th>Total Marks</th>
-                <th>Grade</th>
-            </tr>
-            <tr>
-                <th class="text-left">-</th>
-                @foreach($secondHalfExams as $examNameId => $examParts)
-                @foreach($examParts as $examPartId => $details)
-                @php
-                $examPart = \App\Models\Exam03Part::find($examPartId);
-                @endphp
-                <th>
-                    <div class="muted">{{ $examPart->name ?? 'Part' }}</div>
-                </th>
-                @endforeach
-                @endforeach
-                <th>-</th>
-                <th>-</th>
-            </tr>
-        </thead>
-        <tbody>
-            @php $secondHalfTotalMarks = 0; $secondHalfTotalFull = 0; @endphp
-            @foreach($summativeSubjects as $ms)
-            @php
-            $subjectSecondHalfMarks = 0;
-            $subjectSecondHalfFull = 0;
-            @endphp
-            <tr>
-                <td class="text-left">
-                    <div>{{ optional($ms->subject)->name ?? 'Subject' }}</div>
-                </td>
-                @foreach($secondHalfExams as $examNameId => $examParts)
-                @foreach($examParts as $examPartId => $details)
-                @php
-                $selectedDetail = collect($details)->first(function($d){
-                return optional($d->examType)->name === 'Summative';
-                }) ?? collect($details)->first();
-                $mapping = $selectedDetail ? ($examClassSubjectMap[$selectedDetail->id][$ms->subject_id] ?? null) :
-                null;
-                $key = ($mapping && $selectedDetail) ? ($student->id . '_' . $selectedDetail->id . '_' . $mapping['id']) : null;
-                $entry = $key ? ($marksData[$key] ?? null) : null;
-                @endphp
-                <td>
-                    @if($mapping)
-                    @if(isset($entry['is_absent']) && $entry['is_absent'])
-                    <span style="color: red; font-weight: bold;">AB</span>
-                    @elseif(isset($entry['exam_marks']) && $entry['exam_marks'] !== null)
-                    @php
-                    $rounded = intval(round($entry['exam_marks']));
-                    $fm = intval($mapping['full_marks'] ?? 0);
-                    $subjectSecondHalfMarks += $rounded;
-                    $subjectSecondHalfFull += $fm;
-                    @endphp
-                    <span style="font-weight: bold;">{{ $rounded }}</span>
-                    @else
-                    -
-                    @endif
-                    @else
-                    <span class="muted">N/A</span>
-                    @endif
-                </td>
-                @endforeach
-                @endforeach
-                @php
-                $subjectGrade = '';
-                if($subjectSecondHalfFull > 0){
-                $subjectGrade = \App\Models\Exam08Grade::calculateGrade($subjectSecondHalfMarks, 'summative',
-                $ms->subject_id, $subjectSecondHalfFull);
-                }
-                @endphp
-                @php $secondHalfTotalMarks += $subjectSecondHalfMarks; $secondHalfTotalFull += $subjectSecondHalfFull;
-                @endphp
-                <td>{{ $subjectSecondHalfMarks }} / {{ $subjectSecondHalfFull }}</td>
-                <td>{{ $subjectGrade }}</td>
-            </tr>
-            @endforeach
-            <tr>
-                <td class="text-left"><strong>Grand Total</strong></td>
-                @for($i=0; $i < $secondHalfCols; $i++) <td>-</td>
-                    @endfor
-                    <td><strong>{{ $secondHalfTotalMarks }} / {{ $secondHalfTotalFull }}</strong></td>
-                    <td></td>
-            </tr>
-        </tbody>
-    </table>
-    @endif
-    --}}
 
 
     <table style="width: 100%; margin-top: 6px;">
         <tr>
-            {{-- <td style="width: 33.33%; vertical-align: top;">
-                <div class="section-title">Summative Result</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Marks</th>
-                            <th>%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                        $firstHalfPerc = ($firstHalfTotalFull ?? 0) > 0 ? round((($firstHalfTotalMarks ?? 0) /
-                        ($firstHalfTotalFull ?? 0)) * 100, 2) : 0;
-                        @endphp
-                        <tr>
-                            <td>First Half</td>
-                            <td>{{ $firstHalfTotalMarks ?? 0 }}/{{ $firstHalfTotalFull ?? 0 }}</td>
-                            <td>{{ $firstHalfPerc }}%</td>
-                        </tr>
-                        @php
-                        $secondHalfPerc = ($secondHalfTotalFull ?? 0) > 0 ? round((($secondHalfTotalMarks ?? 0) /
-                        ($secondHalfTotalFull ?? 0)) * 100, 2) : 0;
-                        @endphp
-                        <tr>
-                            <td>Second Half</td>
-                            <td>{{ $secondHalfTotalMarks ?? 0 }}/{{ $secondHalfTotalFull ?? 0 }}</td>
-                            <td>{{ $secondHalfPerc }}%</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </td> --}}
-
-            {{-- <td style="width: 33.33%; vertical-align: top;">
-                <div class="section-title">Second Half Result</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Marks</th>
-                            <th>%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                        $secondHalfPerc = ($secondHalfTotalFull ?? 0) > 0 ? round((($secondHalfTotalMarks ?? 0) /
-                        ($secondHalfTotalFull ?? 0)) * 100, 2) : 0;
-                        @endphp
-                        <tr>
-                            <td>Summative</td>
-                            <td>{{ $secondHalfTotalMarks ?? 0 }}/{{ $secondHalfTotalFull ?? 0 }}</td>
-                            <td>{{ $secondHalfPerc }}%</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </td> --}}
-
-            {{-- <td style="width: 33.33%; vertical-align: top;">
-                <div class="section-title">Overall Result</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Marks</th>
-                            <th>%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                        $grandTotalMarks = ($firstHalfTotalMarks ?? 0) + ($secondHalfTotalMarks ?? 0);
-                        $grandTotalFull = ($firstHalfTotalFull ?? 0) + ($secondHalfTotalFull ?? 0);
-                        $sumPerc = $grandTotalFull > 0 ? round(($grandTotalMarks / $grandTotalFull) * 100, 2) : 0;
-                        $formPerc = ($formGrandFull ?? 0) > 0 ? round(($formGrandMarks / $formGrandFull) * 100, 2) : 0;
-                        $overallObt = $grandTotalMarks + ($formGrandMarks ?? 0);
-                        $overallFull = $grandTotalFull + ($formGrandFull ?? 0);
-                        $overallPerc = $overallFull > 0 ? round(($overallObt / $overallFull) * 100, 2) : 0;
-                        @endphp
-                        <tr>
-                            <td>Summative</td>
-                            <td>{{ $grandTotalMarks }}/{{ $grandTotalFull }}</td>
-                            <td>{{ $sumPerc }}%</td>
-                        </tr>
-                        <tr>
-                            <td>Formative</td>
-                            <td>{{ $formGrandMarks ?? 0 }}/{{ $formGrandFull ?? 0 }}</td>
-                            <td>{{ $formPerc }}%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Total</strong></td>
-                            <td><strong>{{ $overallObt }}/{{ $overallFull }}</strong></td>
-                            <td><strong>{{ $overallPerc }}%</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </td> --}}
+            
         </tr>
     </table>
 

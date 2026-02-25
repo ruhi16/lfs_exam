@@ -283,7 +283,13 @@ class ExamMarksPdfController extends Controller
         $firstTermMarksByStudentSubject = [];
         $secondTermMarksByStudentSubject = [];
 
-        // Prepare exam categorization
+        // Build exam detail type lookup from already-loaded exam details
+        $examDetailTypes = [];
+        foreach ($examDetails as $detail) {
+            $examDetailTypes[$detail->id] = optional($detail->examType)->name;
+        }
+
+        // Prepare exam categorization (include all detail IDs per term)
         $firstHalfExamIds = [];
         $secondHalfExamIds = [];
 
@@ -306,27 +312,39 @@ class ExamMarksPdfController extends Controller
         }
 
         foreach ($marksEntries as $entry) {
-            if (!$entry->is_absent && $entry->exam_marks !== null) {
-                // Find the corresponding exam class subject mapping
-                foreach ($examClassSubjectMap as $examDetailId => $subjects) {
-                    foreach ($subjects as $subjectId => $mapping) {
+            if (!$entry->is_absent && $entry->exam_marks !== null && $entry->exam_marks != -99) {
+                $examDetailId = $entry->exam_detail_id;
+
+                // Only accumulate Summative marks for highest calculation
+                if (($examDetailTypes[$examDetailId] ?? '') !== 'Summative') {
+                    continue;
+                }
+
+                // Find subject ID directly from the exam class subject map using entry's exam_detail_id
+                $subjectId = null;
+                if (isset($examClassSubjectMap[$examDetailId])) {
+                    foreach ($examClassSubjectMap[$examDetailId] as $sid => $mapping) {
                         if ($mapping['id'] == $entry->exam_class_subject_id) {
-                            // Determine which term this belongs to
-                            if (in_array($examDetailId, $firstHalfExamIds)) {
-                                $key = $entry->studentcr_id . '_' . $subjectId;
-                                if (!isset($firstTermMarksByStudentSubject[$key])) {
-                                    $firstTermMarksByStudentSubject[$key] = 0;
-                                }
-                                $firstTermMarksByStudentSubject[$key] += $entry->exam_marks;
-                            } elseif (in_array($examDetailId, $secondHalfExamIds)) {
-                                $key = $entry->studentcr_id . '_' . $subjectId;
-                                if (!isset($secondTermMarksByStudentSubject[$key])) {
-                                    $secondTermMarksByStudentSubject[$key] = 0;
-                                }
-                                $secondTermMarksByStudentSubject[$key] += $entry->exam_marks;
-                            }
-                            break 2; // break both loops once we find the match
+                            $subjectId = $sid;
+                            break;
                         }
+                    }
+                }
+
+                if ($subjectId !== null) {
+                    $roundedMarks = intval(round($entry->exam_marks));
+                    if (in_array($examDetailId, $firstHalfExamIds)) {
+                        $key = $entry->studentcr_id . '_' . $subjectId;
+                        if (!isset($firstTermMarksByStudentSubject[$key])) {
+                            $firstTermMarksByStudentSubject[$key] = 0;
+                        }
+                        $firstTermMarksByStudentSubject[$key] += $roundedMarks;
+                    } elseif (in_array($examDetailId, $secondHalfExamIds)) {
+                        $key = $entry->studentcr_id . '_' . $subjectId;
+                        if (!isset($secondTermMarksByStudentSubject[$key])) {
+                            $secondTermMarksByStudentSubject[$key] = 0;
+                        }
+                        $secondTermMarksByStudentSubject[$key] += $roundedMarks;
                     }
                 }
             }
